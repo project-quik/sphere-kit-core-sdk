@@ -1,5 +1,5 @@
 {
-    "name": "projectquik.spherekit.core",
+    "name": "projectquik.spherekit.core.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:73cef9accc0fb4245ab44deb7292f299"
