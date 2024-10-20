@@ -10,6 +10,9 @@ namespace SphereKit
         [SerializeField]
         public string clientID;
 
+        [SerializeField]
+        public string serverURL;
+
         public static ProjectConfig GetOrCreateConfig()
         {
 #if UNITY_EDITOR
@@ -18,6 +21,7 @@ namespace SphereKit
             {
                 config = CreateInstance<ProjectConfig>();
                 config.clientID = "";
+                config.serverURL = ""; // TODO: Set server URL close to launch
                 if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Resources"))
                 {
                     UnityEditor.AssetDatabase.CreateFolder("Assets", "Resources");

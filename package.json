@@ -9,5 +9,8 @@
         "name": "Project Quik",
         "email": "support@projectquik.co",
         "url": "https://projectquik.co"
+    },
+    "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
     }
 }

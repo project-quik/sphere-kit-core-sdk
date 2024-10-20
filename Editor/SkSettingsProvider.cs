@@ -19,6 +19,7 @@ namespace SphereKit.Editor
         public override void OnGUI(string searchContext)
         {
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("clientID"));
+            EditorGUILayout.PropertyField(_projectConfig.FindProperty("serverURL"));
             _projectConfig.ApplyModifiedPropertiesWithoutUndo();
         }
 

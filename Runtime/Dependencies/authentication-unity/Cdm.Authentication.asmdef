@@ -1,10 +1,7 @@
 {
-    "name": "projectquik.spherekit.core",
-    "rootNamespace": "",
-    "references": [
-        "GUID:73cef9accc0fb4245ab44deb7292f299",
-        "GUID:3413dadb4adff1a408c25509ca9ad129"
-    ],
+    "name": "Cdm.Authentication",
+    "rootNamespace": "Cdm.Authentication",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
