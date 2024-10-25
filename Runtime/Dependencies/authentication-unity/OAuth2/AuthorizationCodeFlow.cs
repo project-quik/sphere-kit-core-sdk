@@ -38,7 +38,7 @@ namespace Cdm.Authentication.OAuth2
         /// The state; any additional information that was provided by application and is posted back by service.
         /// </summary>
         /// <seealso cref="AuthorizationCodeRequest.state"/>
-        public string state { get; private set; }
+        // public string state { get; private set; }
 
         /// <summary>
         /// Gets the client configuration for the authentication method.
@@ -89,7 +89,7 @@ namespace Cdm.Authentication.OAuth2
         public string GetAuthorizationUrl()
         {
             // Generate new state.
-            state = Guid.NewGuid().ToString("D");
+            //state = Guid.NewGuid().ToString("D");
 
             var parameters = GetAuthorizationUrlParameters();
 
@@ -104,7 +104,7 @@ namespace Cdm.Authentication.OAuth2
                 clientId = configuration.clientId,
                 redirectUri = configuration.redirectUri,
                 scope = configuration.scope,
-                state = state
+                // state = state
             });
         }
 
@@ -135,8 +135,8 @@ namespace Cdm.Authentication.OAuth2
                 throw new Exception("Authorization code could not get.");
 
             // Validate authorization response state.
-            if (!string.IsNullOrEmpty(state) && state != authorizationResponse.state)
-                throw new SecurityException($"Invalid state got: {authorizationResponse.state}");
+            /*if (!string.IsNullOrEmpty(state) && state != authorizationResponse.state)
+                throw new SecurityException($"Invalid state got: {authorizationResponse.state}");*/
 
             var parameters = GetAccessTokenParameters(authorizationResponse.code);
 

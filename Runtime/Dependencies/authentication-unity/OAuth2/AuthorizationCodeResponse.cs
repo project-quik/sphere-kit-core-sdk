@@ -24,8 +24,8 @@ namespace Cdm.Authentication.OAuth2
         /// The exact value received from the client while making the authorization request as specified in
         /// <see cref="AuthorizationCodeRequest.state"/>.
         /// </summary>
-        [Preserve]
+        /*[Preserve]
         [DataMember(Name = "state")]
-        public string state { get; set; }
+        public string state { get; set; }*/
     }
 }

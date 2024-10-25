@@ -20,6 +20,7 @@ namespace SphereKit.Editor
         {
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("clientID"));
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("serverURL"));
+            EditorGUILayout.PropertyField(_projectConfig.FindProperty("deepLinkScheme"));
             _projectConfig.ApplyModifiedPropertiesWithoutUndo();
         }
 

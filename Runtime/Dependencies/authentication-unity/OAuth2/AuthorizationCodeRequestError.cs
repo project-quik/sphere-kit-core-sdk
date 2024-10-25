@@ -32,8 +32,8 @@ namespace Cdm.Authentication.OAuth2
         /// REQUIRED if a "state" parameter was present in the client authorization request. The exact value received
         /// from the client.
         /// </summary>
-        [Preserve]
+        /*[Preserve]
         [DataMember(Name = "state")]
-        public string state {  get;  set; }
+        public string state {  get;  set; }*/
     }
 }

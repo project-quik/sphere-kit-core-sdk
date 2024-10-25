@@ -13,21 +13,25 @@ namespace SphereKit
         [SerializeField]
         public string serverURL;
 
+        [SerializeField]
+        public string deepLinkScheme;
+
         public static ProjectConfig GetOrCreateConfig()
         {
 #if UNITY_EDITOR
-            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<ProjectConfig>("Assets/Resources/" + ConfigPath + ".asset");
+            var config = AssetDatabase.LoadAssetAtPath<ProjectConfig>("Assets/Resources/" + ConfigPath + ".asset");
             if (config == null)
             {
                 config = CreateInstance<ProjectConfig>();
                 config.clientID = "";
                 config.serverURL = ""; // TODO: Set server URL close to launch
-                if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Resources"))
+                config.deepLinkScheme = "";
+                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
                 {
-                    UnityEditor.AssetDatabase.CreateFolder("Assets", "Resources");
+                    AssetDatabase.CreateFolder("Assets", "Resources");
                 }
-                UnityEditor.AssetDatabase.CreateAsset(config, "Assets/Resources/" + ConfigPath + ".asset");
-                UnityEditor.AssetDatabase.SaveAssets();
+                AssetDatabase.CreateAsset(config, "Assets/Resources/" + ConfigPath + ".asset");
+                AssetDatabase.SaveAssets();
             }
             return config;
 #else
@@ -35,7 +39,13 @@ namespace SphereKit
 #endif
         }
 
-        public static SerializedObject GetSerializedConfig()
+        public static
+#if UNITY_EDITOR
+        SerializedObject
+#else
+        object
+#endif
+         GetSerializedConfig()
         {
 #if UNITY_EDITOR
             return new SerializedObject(GetOrCreateConfig());

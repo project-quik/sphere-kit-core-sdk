@@ -10,11 +10,10 @@ namespace SphereKit
         static public bool HasInitialized { get; private set; } = false;
         static string _clientId;
         static string _serverUrl;
-#if UNITY_IOS && !UNITY_EDITOR
-    const string RedirectUri = "co.projectquik.spherekit:/oauth";
-#else
-    const string RedirectUri = "http://localhost:8080/spherekit/oauth";
-#endif
+        static string _deepLinkScheme;
+        static string _redirectUri;
+        static AuthenticationSession _authenticationSession;
+        static AccessTokenResponse _accessTokenResponse;
 
         public static void Initialize()
         {
@@ -27,9 +26,22 @@ namespace SphereKit
             {
                 throw new System.Exception("The Server URL has not been configured yet. Please configure Sphere Kit in Project Settings.");
             }
+            if (config.deepLinkScheme == "")
+            {
+#if UNITY_EDITOR
+                Debug.LogWarning("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
+#endif
+            }
 
             _clientId = config.clientID;
             _serverUrl = config.serverURL;
+            _deepLinkScheme = config.deepLinkScheme;
+
+#if UNITY_IOS || UNITY_ANDROID
+    _redirectUri = _deepLinkScheme + "://oauth";
+#else
+    _redirectUri = "http://localhost:8080/spherekit/oauth";
+#endif
 
             HasInitialized = true;
             Debug.Log($"Sphere Kit has been initialized. Client ID is {_clientId}");
@@ -47,13 +59,20 @@ namespace SphereKit
         {
             CheckInitialized();
 
-            // Start OAuth2 flow
+            // Check platform specific requirements
+#if UNITY_IOS || UNITY_ANDROID
+            if (string.IsNullOrEmpty(_deepLinkScheme))
+            {
+                throw new System.Exception("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
+            }
+#endif
 
+            // Start OAuth2 flow
             var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
             {
                 clientId = _clientId,
                 scope = "profile project",
-                redirectUri = RedirectUri,
+                redirectUri = _redirectUri,
             };
             var auth = new SphereAuth(authConfig, _serverUrl);
             var crossPlatformBrowser = new CrossPlatformBrowser();
@@ -63,13 +82,13 @@ namespace SphereKit
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXEditor, new StandaloneBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
-            var authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
-            var accessTokenResponse = await authenticationSession.AuthenticateAsync();
+            _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
+            _accessTokenResponse = await _authenticationSession.AuthenticateAsync();
 
-            Debug.Log("Access token: " + accessTokenResponse.accessToken);
+            Debug.Log("Access token: " + _accessTokenResponse.accessToken);
         }
 
         public static void SignOut()

@@ -46,8 +46,8 @@ namespace Cdm.Authentication.OAuth2
         /// Gets or sets the state (an opaque value used by the client to maintain state between the request and
         /// callback, as mentioned in http://tools.ietf.org/html/rfc6749#section-3.1.2.2 or <c>null</c> for none.
         /// </summary>
-        [Preserve]
+        /*[Preserve]
         [DataMember(Name = "state")]
-        public string state { get; set; }
+        public string state { get; set; }*/
     }
 }

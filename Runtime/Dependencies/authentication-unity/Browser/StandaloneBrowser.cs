@@ -57,8 +57,6 @@ namespace Cdm.Authentication.Browser
             var httpContext = httpListener.EndGetContext(result);
             var httpRequest = httpContext.Request;
             var httpResponse = httpContext.Response;
-            
-            Debug.Log($"Incoming request: {httpRequest.Url}");
 
             if (httpRequest.HttpMethod == "OPTIONS")
             {
@@ -83,7 +81,6 @@ namespace Cdm.Authentication.Browser
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.Success, httpRequest.Url.ToString()));
             }
-
         }
 
         /// <summary>
