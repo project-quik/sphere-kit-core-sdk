@@ -38,6 +38,13 @@ namespace Cdm.Authentication.OAuth2
         public long? expiresIn { get; set; }
 
         /// <summary>
+        /// Gets or sets the lifetime in seconds of the refresh token.
+        /// </summary>
+        [Preserve]
+        [DataMember(Name = "refresh_token_expires_in")]
+        public long? refreshTokenExpiresIn { get; set; }
+
+        /// <summary>
         /// Gets or sets the scope of the access token as specified in http://tools.ietf.org/html/rfc6749#section-3.3.
         /// </summary>
         [Preserve]
@@ -45,12 +52,18 @@ namespace Cdm.Authentication.OAuth2
         public string scope { get; set; }
 
         /// <summary>
-        /// The date and time that this token was issued, expressed in UTC.
+        /// Gets or sets the time at which the <see cref="accessToken"/> was issued.
         /// </summary>
-        /// <remarks>
-        /// This should be set by the <b>client</b> after the token was received from the server.
-        /// </remarks>
-        public DateTime? issuedAt { get; set; }
+        [Preserve]
+        [DataMember(Name = "issued_at")]
+        public long? issuedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the time at which the <see cref="refreshToken"/> was issued.
+        /// </summary>
+        [Preserve]
+        [DataMember(Name = "refresh_token_issued_at")]
+        public long? refreshTokenIssuedAt { get; set; }
 
         /// <summary>
         /// Seconds till the <see cref="accessToken"/> expires returned by provider.
@@ -61,7 +74,23 @@ namespace Cdm.Authentication.OAuth2
             {
                 if (issuedAt.HasValue && expiresIn.HasValue)
                 {
-                    return issuedAt.Value + TimeSpan.FromSeconds(expiresIn.Value);
+                    return DateTimeOffset.FromUnixTimeSeconds(issuedAt.Value).DateTime + TimeSpan.FromSeconds(expiresIn.Value);
+                }
+
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Seconds till the <see cref="refreshToken"/> expires returned by provider.
+        /// </summary>
+        public DateTime? refreshTokenExpiresAt
+        {
+            get
+            {
+                if (refreshTokenIssuedAt.HasValue && refreshTokenExpiresIn.HasValue)
+                {
+                    return DateTimeOffset.FromUnixTimeSeconds(refreshTokenIssuedAt.Value).DateTime + TimeSpan.FromSeconds(refreshTokenExpiresIn.Value);
                 }
 
                 return null;

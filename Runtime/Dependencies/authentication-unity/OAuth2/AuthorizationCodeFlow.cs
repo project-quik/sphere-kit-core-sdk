@@ -261,7 +261,6 @@ namespace Cdm.Authentication.OAuth2
 #endif
 
                 var tokenResponse = JsonConvert.DeserializeObject<AccessTokenResponse>(responseJson);
-                tokenResponse.issuedAt = DateTime.UtcNow;
                 return tokenResponse;
             }
 
