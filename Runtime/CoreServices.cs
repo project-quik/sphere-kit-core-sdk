@@ -3,6 +3,7 @@ using Cdm.Authentication.Clients;
 using Cdm.Authentication.OAuth2;
 using Newtonsoft.Json;
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -87,9 +88,9 @@ namespace SphereKit
                     try
                     {
                         await InternalGetPlayerInfo();
-                    } catch (Exception)
+                    } catch (AuthenticationException)
                     {
-                        // TODO: Handle errors
+                        // Ignore error
                     }
                     ScheduleAccessTokenRefresh();
                 }
@@ -141,12 +142,16 @@ namespace SphereKit
             }
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{_accessTokenResponse.user.uid}");
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}a");
             var playerResponse = await _client.SendAsync(requestMessage);
-            playerResponse.EnsureSuccessStatusCode();
-
-            Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
-            Debug.Log("Player info retrieved for " + Player.UserName);
+            if (playerResponse.IsSuccessStatusCode)
+            {
+                Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
+                Debug.Log("Player info retrieved for " + Player.UserName);
+            } else
+            {
+                HandleErrorResponse(playerResponse);
+            }
         }
 
         public static async Task GetPlayerInfo()
@@ -215,6 +220,44 @@ namespace SphereKit
                 PlayerPrefs.SetString(accessTokenResponseKey, accessTokenResponseJson);
                 Debug.Log("Stored access token in player prefs");
             });
+        }
+
+        static void HandleErrorResponse(HttpResponseMessage response)
+        {
+            Exception error = null;
+            try
+            {
+                var errorData = JsonConvert.DeserializeObject<ErrorResponse>(await playerResponse.Content.ReadAsStringAsync());
+                switch (response.StatusCode)
+                {
+                    case HttpStatusCode.InternalServerError:
+                        error = new InternalServerException(errorData.ErrorMessage);
+                        break;
+                    case HttpStatusCode.TooManyRequests:
+                        error = new RateLimitException(errorData.ErrorMessage);
+                        break;
+                    case HttpStatusCode.NotFound:
+                        error = new NotFoundException(errorData.ErrorCode, errorData.ErrorMessage);
+                        break;
+                    case HttpStatusCode.Forbidden:
+                        error = new ForbiddenException(errorData.ErrorCode, errorData.ErrorMessage);
+                        break;
+                    case HttpStatusCode.Unauthorized:
+                        error = new AuthenticationException(errorData.ErrorCode, errorData.ErrorMessage);
+                        break;
+                    case HttpStatusCode.BadRequest:
+                        error = new BadRequestException(errorData.ErrorCode, errorData.ErrorMessage);
+                        break;
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore
+            }
+
+            error ??= new Exception("An unknown error occurred while fetching player info.");
+
+            throw error;
         }
 
         public static void SignOut()

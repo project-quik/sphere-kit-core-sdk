@@ -265,7 +265,8 @@ namespace Cdm.Authentication.OAuth2
                 return tokenResponse;
             }
 
-            AccessTokenRequestError error = null;
+            // TODO: change error handling
+            /*AccessTokenRequestError error = null;
             try
             {
                 var errorJson = await response.Content.ReadAsStringAsync();
@@ -276,7 +277,7 @@ namespace Cdm.Authentication.OAuth2
                 Debug.LogWarning("Exception occurred while parsing OAuth error response: " + e.Message);
             }
 
-            throw new AccessTokenRequestException(error, response.StatusCode);
+            throw new AccessTokenRequestException(error, response.StatusCode);*/
         }
 
         /// <summary>
