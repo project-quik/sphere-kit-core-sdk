@@ -97,6 +97,13 @@ namespace Cdm.Authentication.OAuth2
             }
         }
 
+        /// <summary>
+        /// Info about the user who authorized the token.
+        /// </summary>
+        [Preserve]
+        [DataMember(Name = "user")]
+        public AccessTokenUserInfo user { get; set; }
+
         public AuthenticationHeaderValue GetAuthenticationHeader()
         {
             return new AuthenticationHeaderValue(tokenType, accessToken);

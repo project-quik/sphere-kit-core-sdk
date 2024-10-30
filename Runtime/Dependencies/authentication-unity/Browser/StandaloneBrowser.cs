@@ -114,7 +114,7 @@ namespace Cdm.Authentication.Browser
             });
 
             using var httpListener = new HttpListener();
-            
+
             try
             {
                 _loginOrigin = new Uri(loginUrl).GetLeftPart(UriPartial.Authority);
@@ -122,9 +122,9 @@ namespace Cdm.Authentication.Browser
                 httpListener.Prefixes.Add(redirectUrl);
                 httpListener.Start();
                 httpListener.BeginGetContext(IncomingHttpRequest, httpListener);
-                
+
                 Application.OpenURL(loginUrl);
-                
+
                 return await _taskCompletionSource.Task;
             }
             finally
@@ -147,10 +147,12 @@ namespace Cdm.Authentication.Browser
                 httpResponse.StatusCode = 200;
                 httpResponse.ContentLength64 = 0;
                 httpResponse.OutputStream.Close();
-            } else {
+            }
+            else
+            {
                 // Add simple cors
                 httpResponse.AddHeader("Access-Control-Allow-Origin", _loginOrigin);
-                
+
                 // Build a response to send an "ok" back to the browser for the user to see.
                 var buffer = System.Text.Encoding.UTF8.GetBytes(_closePageResponse);
 

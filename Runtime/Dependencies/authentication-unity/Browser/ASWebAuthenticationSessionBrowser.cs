@@ -16,25 +16,25 @@ namespace Cdm.Authentication.Browser
         /// Set this property before you call <see cref="StartAsync"/>. Otherwise it has no effect.
         /// </remarks>
         public bool prefersEphemeralWebBrowserSession { get; set; } = false;
-        
+
         public async Task<BrowserResult> StartAsync(
             string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(loginUrl))
                 throw new ArgumentNullException(nameof(loginUrl));
-            
+
             if (string.IsNullOrEmpty(redirectUrl))
                 throw new ArgumentNullException(nameof(redirectUrl));
-            
+
             _taskCompletionSource = new TaskCompletionSource<BrowserResult>();
-            
+
             // Discard URL parameters. They are not valid for iOS URL Scheme.
-            redirectUrl = redirectUrl.Split(new char[] {':'}, StringSplitOptions.RemoveEmptyEntries)[0];
-            
+            redirectUrl = redirectUrl.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries)[0];
+
             using var authenticationSession =
                 new ASWebAuthenticationSession(loginUrl, redirectUrl, AuthenticationSessionCompletionHandler);
             authenticationSession.prefersEphemeralWebBrowserSession = prefersEphemeralWebBrowserSession;
-            
+
             cancellationToken.Register(() =>
             {
                 _taskCompletionSource?.TrySetCanceled();
@@ -63,7 +63,7 @@ namespace Cdm.Authentication.Browser
             if (error.code == ASWebAuthenticationSessionErrorCode.None)
             {
                 _taskCompletionSource.SetResult(
-                    new BrowserResult(BrowserStatus.Success, callbackUrl));   
+                    new BrowserResult(BrowserStatus.Success, callbackUrl));
             }
             else if (error.code == ASWebAuthenticationSessionErrorCode.CanceledLogin)
             {

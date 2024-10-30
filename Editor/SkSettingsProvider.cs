@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace SphereKit.Editor
 {
-    internal class SkSettingsProvider: SettingsProvider
+    internal class SkSettingsProvider : SettingsProvider
     {
         private SerializedObject _projectConfig;
         internal const string ConfigPath = ProjectConfig.ConfigPath;

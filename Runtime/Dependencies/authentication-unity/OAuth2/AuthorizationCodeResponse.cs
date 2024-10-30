@@ -19,7 +19,7 @@ namespace Cdm.Authentication.OAuth2
         [Preserve]
         [DataMember(IsRequired = true, Name = "code")]
         public string code { get; set; }
-        
+
         /// <summary>
         /// The exact value received from the client while making the authorization request as specified in
         /// <see cref="AuthorizationCodeRequest.state"/>.

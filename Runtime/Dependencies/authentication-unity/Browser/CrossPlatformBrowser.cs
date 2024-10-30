@@ -9,9 +9,9 @@ namespace Cdm.Authentication.Browser
 {
     public class CrossPlatformBrowser : IBrowser
     {
-        public readonly Dictionary<RuntimePlatform, IBrowser> _platformBrowsers = 
+        public readonly Dictionary<RuntimePlatform, IBrowser> _platformBrowsers =
             new Dictionary<RuntimePlatform, IBrowser>();
-        
+
         public IDictionary<RuntimePlatform, IBrowser> platformBrowsers => _platformBrowsers;
 
         public async Task<BrowserResult> StartAsync(

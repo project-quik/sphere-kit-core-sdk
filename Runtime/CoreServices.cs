@@ -1,17 +1,19 @@
-using UnityEngine;
+using Cdm.Authentication.Browser;
 using Cdm.Authentication.Clients;
 using Cdm.Authentication.OAuth2;
-using Cdm.Authentication.Browser;
+using Newtonsoft.Json;
 using System;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
+using UnityEngine;
 
 namespace SphereKit
 {
     public class CoreServices
     {
         static public bool HasInitialized { get; private set; } = false;
+        static public Player Player { get; private set; }
         static internal string AccessToken { get { return _accessTokenResponse?.accessToken; } }
 
         static string _clientId;
@@ -21,10 +23,11 @@ namespace SphereKit
         static AuthenticationSession _authenticationSession;
         static AccessTokenResponse _accessTokenResponse;
         static Timer _refreshAccessTokenTimer;
+        static readonly HttpClient _client = new();
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
-        public static void Initialize()
+        public static async Task Initialize()
         {
             // Load configuration
             var config = ProjectConfig.GetOrCreateConfig();
@@ -50,20 +53,48 @@ namespace SphereKit
 #if UNITY_IOS || UNITY_ANDROID
     _redirectUri = _deepLinkScheme + "://oauth";
 #else
-    _redirectUri = "http://localhost:8080/spherekit/oauth";
+            _redirectUri = "http://localhost:8080/spherekit/oauth";
 #endif
 
+            // Initialise authentication session
+            var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
+            {
+                clientId = _clientId,
+                scope = "profile project",
+                redirectUri = _redirectUri,
+            };
+            var auth = new SphereAuth(authConfig, _serverUrl);
+            var crossPlatformBrowser = new CrossPlatformBrowser();
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
+            _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
+
             // Load access token response from player prefs
-            // TODO: Handle errors
             try
             {
                 if (PlayerPrefs.HasKey(accessTokenResponseKey))
                 {
                     _accessTokenResponse = JsonConvert.DeserializeObject<AccessTokenResponse>(PlayerPrefs.GetString(accessTokenResponseKey));
+                    _authenticationSession.SetAuthenticationInfo(_accessTokenResponse);
                     Debug.Log("Access token loaded from player prefs: " + _accessTokenResponse.accessToken);
+                    try
+                    {
+                        await InternalGetPlayerInfo();
+                    } catch (Exception)
+                    {
+                        // TODO: Handle errors
+                    }
                     ScheduleAccessTokenRefresh();
                 }
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 Debug.LogWarning("Failed to load access token from player prefs: " + e.Message);
             }
@@ -93,29 +124,36 @@ namespace SphereKit
 #endif
 
             // Start OAuth2 flow
-            var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
-            {
-                clientId = _clientId,
-                scope = "profile project",
-                redirectUri = _redirectUri,
-            };
-            var auth = new SphereAuth(authConfig, _serverUrl);
-            var crossPlatformBrowser = new CrossPlatformBrowser();
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
-            _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
             _accessTokenResponse = await _authenticationSession.AuthenticateAsync();
+            await GetPlayerInfo();
             StoreAccessTokenResponse();
 
             Debug.Log("Access token from server: " + _accessTokenResponse.accessToken);
             ScheduleAccessTokenRefresh();
+        }
+
+        static async Task InternalGetPlayerInfo()
+        {
+            if (AccessToken == null)
+            {
+                Debug.LogError("User info requested but no access token is available.");
+                return;
+            }
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{_accessTokenResponse.user.uid}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            var playerResponse = await _client.SendAsync(requestMessage);
+            playerResponse.EnsureSuccessStatusCode();
+
+            Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
+            Debug.Log("Player info retrieved for " + Player.UserName);
+        }
+
+        public static async Task GetPlayerInfo()
+        {
+            CheckInitialized();
+
+            await InternalGetPlayerInfo();
         }
 
         static async Task RefreshAccessToken()
@@ -134,8 +172,11 @@ namespace SphereKit
             }
 
             _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-
             Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
+
+            await GetPlayerInfo();
+            Debug.Log("Player info retrieved for " + Player.UserName);
+
             ScheduleAccessTokenRefresh();
         }
 

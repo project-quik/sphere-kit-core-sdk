@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Cdm.Authentication.Utils;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,8 +10,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using Cdm.Authentication.Utils;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Cdm.Authentication.OAuth2
@@ -222,8 +222,8 @@ namespace Cdm.Authentication.OAuth2
             });
 
             Debug.Assert(parameters != null);
-            
-            var tokenResponse = 
+
+            var tokenResponse =
                 await GetAccessTokenInternalAsync(new FormUrlEncodedContent(parameters), cancellationToken);
             if (!tokenResponse.HasRefreshToken())
             {
@@ -277,6 +277,15 @@ namespace Cdm.Authentication.OAuth2
             }
 
             throw new AccessTokenRequestException(error, response.StatusCode);
+        }
+
+        /// <summary>
+        /// Sets authentication info if the authentication state should be restored.
+        /// </summary>
+        /// <param name="accessTokenResponse">The access token response to set.</param>
+        public void SetAuthenticationInfo(AccessTokenResponse accessTokenResponse)
+        {
+            this.accessTokenResponse = accessTokenResponse;
         }
 
         public void Dispose()

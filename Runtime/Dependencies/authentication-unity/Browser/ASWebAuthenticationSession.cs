@@ -1,6 +1,6 @@
-﻿using System;
+﻿using AOT;
+using System;
 using System.Collections.Generic;
-using AOT;
 
 #if UNITY_IOS && !UNITY_EDITOR
 using System.Runtime.InteropServices;
@@ -16,7 +16,7 @@ namespace Cdm.Authentication.Browser
     {
         private static readonly Dictionary<IntPtr, ASWebAuthenticationSessionCompletionHandler> CompletionCallbacks =
             new Dictionary<IntPtr, ASWebAuthenticationSessionCompletionHandler>();
-        
+
         private IntPtr _sessionPtr;
 
         /// <summary>
@@ -37,13 +37,13 @@ namespace Cdm.Authentication.Browser
         /// <param name="callbackUrlScheme">The custom URL scheme that the app expects in the callback URL.</param>
         /// <param name="completionHandler">A completion handler the session calls when it completes successfully, or when the user cancels the session.</param>
         /// <seealso ahref="https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession/2990952-initwithurl?language=objc"/>
-        public ASWebAuthenticationSession(string url, string callbackUrlScheme, 
+        public ASWebAuthenticationSession(string url, string callbackUrlScheme,
             ASWebAuthenticationSessionCompletionHandler completionHandler)
         {
-            _sessionPtr = 
+            _sessionPtr =
                 Cdm_Auth_ASWebAuthenticationSession_InitWithURL(
                     url, callbackUrlScheme, OnAuthenticationSessionCompleted);
-            
+
             CompletionCallbacks.Add(_sessionPtr, completionHandler);
         }
 
@@ -65,13 +65,13 @@ namespace Cdm.Authentication.Browser
         {
             Cdm_Auth_ASWebAuthenticationSession_Cancel(_sessionPtr);
         }
-        
+
         public void Dispose()
         {
             CompletionCallbacks.Remove(_sessionPtr);
             _sessionPtr = IntPtr.Zero;
         }
-        
+
 #if UNITY_IOS && !UNITY_EDITOR
         private const string DllName = "__Internal";
         
@@ -94,7 +94,7 @@ namespace Cdm.Authentication.Browser
 #else
 
         private const string NotSupportedMsg = "Only iOS platform is supported.";
-        
+
         private static IntPtr Cdm_Auth_ASWebAuthenticationSession_InitWithURL(
             string url, string callbackUrlScheme, AuthenticationSessionCompletedCallback completionHandler)
         {
@@ -122,20 +122,20 @@ namespace Cdm.Authentication.Browser
             throw new NotImplementedException(NotSupportedMsg);
         }
 #endif
-        public delegate void ASWebAuthenticationSessionCompletionHandler(string callbackUrl, 
+        public delegate void ASWebAuthenticationSessionCompletionHandler(string callbackUrl,
             ASWebAuthenticationSessionError error);
 
-        private delegate void AuthenticationSessionCompletedCallback(IntPtr session, string callbackUrl, 
+        private delegate void AuthenticationSessionCompletedCallback(IntPtr session, string callbackUrl,
             int errorCode, string errorMessage);
-        
+
         [MonoPInvokeCallback(typeof(AuthenticationSessionCompletedCallback))]
-        private static void OnAuthenticationSessionCompleted(IntPtr session, string callbackUrl, 
+        private static void OnAuthenticationSessionCompleted(IntPtr session, string callbackUrl,
             int errorCode, string errorMessage)
         {
             if (CompletionCallbacks.TryGetValue(session, out var callback))
             {
-                callback?.Invoke(callbackUrl, 
-                    new ASWebAuthenticationSessionError((ASWebAuthenticationSessionErrorCode) errorCode, errorMessage));
+                callback?.Invoke(callbackUrl,
+                    new ASWebAuthenticationSessionError((ASWebAuthenticationSessionErrorCode)errorCode, errorMessage));
             }
         }
     }

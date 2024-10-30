@@ -27,7 +27,7 @@ namespace Cdm.Authentication.OAuth2
         [Preserve]
         [DataMember(Name = "error_uri")]
         public string uri { get; set; }
-        
+
         /// <summary>
         /// REQUIRED if a "state" parameter was present in the client authorization request. The exact value received
         /// from the client.

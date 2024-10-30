@@ -17,14 +17,14 @@ namespace Cdm.Authentication.OAuth2
         [Preserve]
         [DataMember(Name = "response_type", IsRequired = true)]
         public string responseType => "code";
-        
+
         /// <summary>
         /// Gets or sets the client identifier as specified in https://www.rfc-editor.org/rfc/rfc6749#section-2.2.
         /// </summary>
         [Preserve]
         [DataMember(Name = "client_id", IsRequired = true)]
         public string clientId { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the URI that the authorization server directs the resource owner's user-agent back to the
         /// client after a successful authorization grant, as specified in
@@ -33,7 +33,7 @@ namespace Cdm.Authentication.OAuth2
         [Preserve]
         [DataMember(Name = "redirect_uri")]
         public string redirectUri { get; set; }
-        
+
         /// <summary>
         /// Gets or sets space-separated list of scopes, as specified in
         /// http://tools.ietf.org/html/rfc6749#section-3.3 or <c>null</c> for none.

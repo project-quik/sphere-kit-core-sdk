@@ -13,20 +13,20 @@ namespace Cdm.Authentication.OAuth2
         /// HTTP status code of error, or null if unknown.
         /// </summary>
         public HttpStatusCode? statusCode { get; }
-        
+
         /// <summary>
         /// The error information.
         /// </summary>
         public AccessTokenRequestError error { get; }
 
-        public AccessTokenRequestException(AccessTokenRequestError error, HttpStatusCode? statusCode) 
+        public AccessTokenRequestException(AccessTokenRequestError error, HttpStatusCode? statusCode)
             : base(error.description)
         {
             this.error = error;
             this.statusCode = statusCode;
         }
 
-        public AccessTokenRequestException(AccessTokenRequestError error, HttpStatusCode? statusCode, string message) 
+        public AccessTokenRequestException(AccessTokenRequestError error, HttpStatusCode? statusCode, string message)
             : base(message)
         {
             this.error = error;

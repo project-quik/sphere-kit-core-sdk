@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Cdm.Authentication.Browser;
+using System;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Cdm.Authentication.Browser;
 using UnityEngine;
 
 namespace Cdm.Authentication.OAuth2
@@ -24,7 +24,7 @@ namespace Cdm.Authentication.OAuth2
         {
             return _client.ShouldRequestAuthorizationCode();
         }
-        
+
         public bool SupportsUserInfo()
         {
             return _client is IUserInfoProvider;
@@ -124,6 +124,15 @@ namespace Cdm.Authentication.OAuth2
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Sets authentication info if the authentication state should be restored.
+        /// </summary>
+        /// <param name="accessTokenResponse">The access token response to set.</param>
+        public void SetAuthenticationInfo(AccessTokenResponse accessTokenResponse)
+        {
+            _client.SetAuthenticationInfo(accessTokenResponse);
         }
 
         public void Dispose()

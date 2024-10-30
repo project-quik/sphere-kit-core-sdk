@@ -6,12 +6,12 @@
         /// Gets the user identifier.
         /// </summary>
         public string id { get; }
-        
+
         /// <summary>
         /// Gets the name of the user.
         /// </summary>
         public string name { get; }
-        
+
         /// <summary>
         /// Gets the email address of the user.
         /// </summary>
