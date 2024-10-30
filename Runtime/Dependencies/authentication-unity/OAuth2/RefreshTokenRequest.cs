@@ -26,6 +26,14 @@ namespace Cdm.Authentication.OAuth2
         public string refreshToken { get; set; }
 
         /// <summary>
+        /// The client identifier issued to the client during the registration process described by
+        /// <a href="https://www.rfc-editor.org/rfc/rfc6749#section-2.2">Section 2.2</a>.
+        /// </summary>
+        [Preserve]
+        [DataMember(IsRequired = true, Name = "client_id")]
+        public string clientId { get; set; }
+
+        /// <summary>
         /// OPTIONAL. The scope of the access request as described by Section 3.3.  The requested scope MUST NOT
         /// include any scope not originally granted by the resource owner, and if omitted is treated as equal to
         /// the scope originally granted by the resource owner.

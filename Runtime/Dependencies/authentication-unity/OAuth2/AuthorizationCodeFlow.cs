@@ -217,7 +217,8 @@ namespace Cdm.Authentication.OAuth2
             var parameters = JsonHelper.ToDictionary(new RefreshTokenRequest()
             {
                 refreshToken = refreshToken,
-                scope = configuration.scope
+                scope = configuration.scope,
+                clientId = configuration.clientId,
             });
 
             Debug.Assert(parameters != null);

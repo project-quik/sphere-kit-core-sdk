@@ -20,7 +20,7 @@ namespace SphereKit
         static string _redirectUri;
         static AuthenticationSession _authenticationSession;
         static AccessTokenResponse _accessTokenResponse;
-        static Timer refreshAccessTokenTimer;
+        static Timer _refreshAccessTokenTimer;
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
@@ -134,7 +134,6 @@ namespace SphereKit
             }
 
             _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-            StoreAccessTokenResponse();
 
             Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
             ScheduleAccessTokenRefresh();
@@ -152,12 +151,13 @@ namespace SphereKit
 
             // Schedule a refresh of the access token
             Debug.Log($"Scheduling access token refresh in {liveExpiresIn}ms");
-            refreshAccessTokenTimer?.Dispose();
-            refreshAccessTokenTimer = new Timer(async (state) =>
+            _refreshAccessTokenTimer?.Dispose();
+            _refreshAccessTokenTimer = new Timer(static async (state) =>
             {
+                Debug.Log("Refreshing access token");
                 await RefreshAccessToken();
             });
-            refreshAccessTokenTimer.Change(liveExpiresIn, Timeout.Infinite);
+            _refreshAccessTokenTimer.Change(liveExpiresIn, Timeout.Infinite);
         }
 
         static void StoreAccessTokenResponse()
@@ -178,7 +178,7 @@ namespace SphereKit
             CheckInitialized();
 
             // TODO: Sign out of Sphere Kit
-            refreshAccessTokenTimer?.Dispose();
+            _refreshAccessTokenTimer?.Dispose();
         }
     }
 }
