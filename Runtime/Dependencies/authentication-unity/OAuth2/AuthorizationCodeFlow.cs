@@ -271,9 +271,9 @@ namespace Cdm.Authentication.OAuth2
                 var errorJson = await response.Content.ReadAsStringAsync();
                 error = JsonConvert.DeserializeObject<AccessTokenRequestError>(errorJson);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // ignored
+                Debug.LogWarning("Exception occurred while parsing OAuth error response: " + e.Message);
             }
 
             throw new AccessTokenRequestException(error, response.StatusCode);

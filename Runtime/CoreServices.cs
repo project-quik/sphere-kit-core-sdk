@@ -172,10 +172,10 @@ namespace SphereKit
             }
 
             _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-            Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
-
             await GetPlayerInfo();
-            Debug.Log("Player info retrieved for " + Player.UserName);
+            StoreAccessTokenResponse();
+
+            Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
 
             ScheduleAccessTokenRefresh();
         }
@@ -210,8 +210,11 @@ namespace SphereKit
             }
 
             var accessTokenResponseJson = JsonConvert.SerializeObject(_accessTokenResponse);
-            PlayerPrefs.SetString(accessTokenResponseKey, accessTokenResponseJson);
-            Debug.Log("Stored access token in player prefs");
+            MainThreadDispatcher.Execute(() =>
+            {
+                PlayerPrefs.SetString(accessTokenResponseKey, accessTokenResponseJson);
+                Debug.Log("Stored access token in player prefs");
+            });
         }
 
         public static void SignOut()
