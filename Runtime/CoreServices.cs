@@ -14,7 +14,7 @@ namespace SphereKit
     public class CoreServices
     {
         static public bool HasInitialized { get; private set; } = false;
-        static public Player Player { get; private set; }
+        static public Player? Player { get; private set; }
         static internal string AccessToken { get { return _accessTokenResponse?.accessToken; } }
 
         static string _clientId;
@@ -24,7 +24,7 @@ namespace SphereKit
         static AuthenticationSession _authenticationSession;
         static AccessTokenResponse _accessTokenResponse;
         static Timer _refreshAccessTokenTimer;
-        static readonly HttpClient _client = new();
+        static readonly HttpClient _httpClient = new();
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
@@ -58,24 +58,7 @@ namespace SphereKit
 #endif
 
             // Initialise authentication session
-            var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
-            {
-                clientId = _clientId,
-                scope = "profile project",
-                redirectUri = _redirectUri,
-            };
-            var auth = new SphereAuth(authConfig, _serverUrl);
-            var crossPlatformBrowser = new CrossPlatformBrowser();
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
-            _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
+            InitialiseAuthenticationSession();
 
             // Load access token response from player prefs
             try
@@ -107,6 +90,28 @@ namespace SphereKit
             Debug.Log($"Sphere Kit has been initialized. Client ID is {_clientId}");
         }
 
+        static void InitialiseAuthenticationSession()
+        {
+            var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
+            {
+                clientId = _clientId,
+                scope = "profile project",
+                redirectUri = _redirectUri,
+            };
+            var auth = new SphereAuth(authConfig, _serverUrl);
+            var crossPlatformBrowser = new CrossPlatformBrowser();
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.OSXEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
+            _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
+        }
+
         static void CheckInitialized()
         {
             if (!HasInitialized)
@@ -136,20 +141,25 @@ namespace SphereKit
             ScheduleAccessTokenRefresh();
         }
 
+        static void CheckSignedIn()
+        {
+            if (_accessTokenResponse == null)
+            {
+                throw new Exception("User is not signed in."); // TODO: Use AuthenticationException
+            }
+        }
+
         static async Task InternalGetPlayerInfo()
         {
-            if (AccessToken == null)
-            {
-                throw new Exception("User info requested but access token is not available");
-            }
+            CheckSignedIn();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{_accessTokenResponse.user.uid}");
             requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
-            var playerResponse = await _client.SendAsync(requestMessage);
+            var playerResponse = await _httpClient.SendAsync(requestMessage);
             if (playerResponse.IsSuccessStatusCode)
             {
                 Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
-                Debug.Log("Player info retrieved for " + Player.UserName);
+                Debug.Log("Player info retrieved for " + Player.Value.UserName);
             } else
             {
                 await HandleErrorResponse(playerResponse);
@@ -264,17 +274,47 @@ namespace SphereKit
                 // Ignore
             }
 
-            error ??= new Exception("An unknown error occurred while fetching player info.");
+
+            Debug.LogWarning("Unknown error occurred: " + await response.Content.ReadAsStringAsync());
+            error ??= new Exception("An unknown error occurred while using Sphere Kit.");
 
             throw error;
         }
 
-        public static void SignOut()
+        public static async Task SignOut()
         {
             CheckInitialized();
 
-            // TODO: Sign out of Sphere Kit
+            // Sign out of the server
+            if (_accessTokenResponse != null)
+            {
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_serverUrl}/oauth/signout");
+                requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+                var playerResponse = await _httpClient.SendAsync(requestMessage);
+                if (!playerResponse.IsSuccessStatusCode) {
+                    await HandleErrorResponse(playerResponse);
+                }
+            }
+
+            // Dispose variables
+            Player = null;
+            _authenticationSession.Dispose();
+            _authenticationSession = null;
+            _accessTokenResponse = null;
             _refreshAccessTokenTimer?.Dispose();
+            _refreshAccessTokenTimer = null;
+            Debug.Log("Variables disposed.");
+
+            // Clear player prefs
+            MainThreadDispatcher.Execute(() =>
+            {
+                PlayerPrefs.DeleteKey(accessTokenResponseKey);
+                Debug.Log("Access token removed from player prefs.");
+            });
+
+            // Create new authentication session
+            InitialiseAuthenticationSession();
+            Debug.Log("Signed out.");
         }
     }
 }
