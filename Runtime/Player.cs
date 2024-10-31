@@ -47,7 +47,7 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(Name = "score")]
-        public readonly int Score;
+        public readonly long Score;
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "metadata")]
@@ -59,7 +59,7 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(Name = "banStartTime")]
-        int _banStartTimeMillis
+        long _banStartTimeMillis
         {
             set
             {
@@ -70,7 +70,7 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(Name = "banDuration")]
-        int _banDurationHours
+        long _banDurationHours
         {
             set
             {

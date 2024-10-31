@@ -84,7 +84,7 @@ namespace SphereKit
                 {
                     _accessTokenResponse = JsonConvert.DeserializeObject<AccessTokenResponse>(PlayerPrefs.GetString(accessTokenResponseKey));
                     _authenticationSession.SetAuthenticationInfo(_accessTokenResponse);
-                    Debug.Log("Access token loaded from player prefs: " + _accessTokenResponse.accessToken);
+                    Debug.Log("Access token loaded from player prefs.");
                     try
                     {
                         await InternalGetPlayerInfo();
@@ -132,7 +132,7 @@ namespace SphereKit
             await GetPlayerInfo();
             StoreAccessTokenResponse();
 
-            Debug.Log("Access token from server: " + _accessTokenResponse.accessToken);
+            Debug.Log("Access token received from server.");
             ScheduleAccessTokenRefresh();
         }
 
@@ -140,12 +140,11 @@ namespace SphereKit
         {
             if (AccessToken == null)
             {
-                Debug.LogError("User info requested but no access token is available.");
-                return;
+                throw new Exception("User info requested but access token is not available");
             }
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{_accessTokenResponse.user.uid}");
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}a");
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
             var playerResponse = await _client.SendAsync(requestMessage);
             if (playerResponse.IsSuccessStatusCode)
             {
@@ -185,7 +184,7 @@ namespace SphereKit
                 await GetPlayerInfo();
                 StoreAccessTokenResponse();
 
-                Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
+                Debug.Log("Access token refreshed.");
 
                 ScheduleAccessTokenRefresh();
             } catch (AuthenticationException)
