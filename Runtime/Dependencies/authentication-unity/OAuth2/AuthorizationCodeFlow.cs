@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using UnityEngine;
+using SphereKit;
 
 namespace Cdm.Authentication.OAuth2
 {
@@ -265,19 +266,8 @@ namespace Cdm.Authentication.OAuth2
                 return tokenResponse;
             }
 
-            // TODO: change error handling
-            /*AccessTokenRequestError error = null;
-            try
-            {
-                var errorJson = await response.Content.ReadAsStringAsync();
-                error = JsonConvert.DeserializeObject<AccessTokenRequestError>(errorJson);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning("Exception occurred while parsing OAuth error response: " + e.Message);
-            }
-
-            throw new AccessTokenRequestException(error, response.StatusCode);*/
+            await CoreServices.HandleErrorResponse(response);
+            return null;
         }
 
         /// <summary>

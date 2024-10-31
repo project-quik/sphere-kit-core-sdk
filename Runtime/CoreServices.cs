@@ -88,9 +88,12 @@ namespace SphereKit
                     try
                     {
                         await InternalGetPlayerInfo();
-                    } catch (AuthenticationException)
+                    } catch (AuthenticationException e)
                     {
-                        // Ignore error
+                        if (!_accessTokenResponse.IsExpired())
+                        {
+                            throw e;
+                        }
                     }
                     ScheduleAccessTokenRefresh();
                 }
@@ -150,7 +153,7 @@ namespace SphereKit
                 Debug.Log("Player info retrieved for " + Player.UserName);
             } else
             {
-                HandleErrorResponse(playerResponse);
+                await HandleErrorResponse(playerResponse);
             }
         }
 
@@ -176,13 +179,19 @@ namespace SphereKit
                 return;
             }
 
-            _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-            await GetPlayerInfo();
-            StoreAccessTokenResponse();
+            try
+            {
+                _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
+                await GetPlayerInfo();
+                StoreAccessTokenResponse();
 
-            Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
+                Debug.Log("Access token refreshed: " + _accessTokenResponse.accessToken);
 
-            ScheduleAccessTokenRefresh();
+                ScheduleAccessTokenRefresh();
+            } catch (AuthenticationException)
+            {
+                Debug.LogWarning("Failed to refresh token. User needs to sign in again");
+            }
         }
 
         static void ScheduleAccessTokenRefresh()
@@ -222,12 +231,12 @@ namespace SphereKit
             });
         }
 
-        static void HandleErrorResponse(HttpResponseMessage response)
+        internal static async Task HandleErrorResponse(HttpResponseMessage response)
         {
             Exception error = null;
             try
             {
-                var errorData = JsonConvert.DeserializeObject<ErrorResponse>(await playerResponse.Content.ReadAsStringAsync());
+                var errorData = JsonConvert.DeserializeObject<ErrorResponse>(await response.Content.ReadAsStringAsync());
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.InternalServerError:
@@ -244,6 +253,7 @@ namespace SphereKit
                         break;
                     case HttpStatusCode.Unauthorized:
                         error = new AuthenticationException(errorData.ErrorCode, errorData.ErrorMessage);
+                        // TODO: Sign in again
                         break;
                     case HttpStatusCode.BadRequest:
                         error = new BadRequestException(errorData.ErrorCode, errorData.ErrorMessage);
