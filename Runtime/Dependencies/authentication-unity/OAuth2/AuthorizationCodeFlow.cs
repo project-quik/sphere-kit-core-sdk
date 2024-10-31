@@ -1,5 +1,6 @@
 ﻿using Cdm.Authentication.Utils;
 using Newtonsoft.Json;
+using SphereKit;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -11,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using UnityEngine;
-using SphereKit;
 
 namespace Cdm.Authentication.OAuth2
 {
@@ -266,7 +266,7 @@ namespace Cdm.Authentication.OAuth2
                 return tokenResponse;
             }
 
-            await CoreServices.HandleErrorResponse(response);
+            await CoreServices.HandleErrorResponse(response, true);
             return null;
         }
 

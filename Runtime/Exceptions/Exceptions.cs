@@ -36,7 +36,8 @@ namespace SphereKit
     {
         public AuthenticationExceptionCode Code { get; private set; }
 
-        public AuthenticationException(string code, string message) : base($"({code}) {message}") {
+        public AuthenticationException(string code, string message) : base($"({code}) {message}")
+        {
             Code = AuthenticationExceptionCodeExtensions.GetExceptionCode(code);
         }
     }

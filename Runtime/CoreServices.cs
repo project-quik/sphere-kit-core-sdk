@@ -3,6 +3,7 @@ using Cdm.Authentication.Clients;
 using Cdm.Authentication.OAuth2;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -25,6 +26,8 @@ namespace SphereKit
         static AccessTokenResponse _accessTokenResponse;
         static Timer _refreshAccessTokenTimer;
         static readonly HttpClient _httpClient = new();
+        static List<Action<AuthState>> _playerStateChangeListeners = new();
+        static AuthState _authState { get { return new AuthState(_accessTokenResponse != null, Player); } }
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
@@ -61,29 +64,40 @@ namespace SphereKit
             InitialiseAuthenticationSession();
 
             // Load access token response from player prefs
-            try
+            if (PlayerPrefs.HasKey(accessTokenResponseKey))
             {
-                if (PlayerPrefs.HasKey(accessTokenResponseKey))
+                try
                 {
                     _accessTokenResponse = JsonConvert.DeserializeObject<AccessTokenResponse>(PlayerPrefs.GetString(accessTokenResponseKey));
                     _authenticationSession.SetAuthenticationInfo(_accessTokenResponse);
                     Debug.Log("Access token loaded from player prefs.");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("Failed to load access token from player prefs: " + e.Message);
+                }
+
+                if (_accessTokenResponse != null)
+                {
                     try
                     {
-                        await InternalGetPlayerInfo();
-                    } catch (AuthenticationException e)
+                        await InternalGetPlayerInfo(true);
+                    }
+                    catch (AuthenticationException e)
                     {
                         if (!_accessTokenResponse.IsExpired())
                         {
+                            _accessTokenResponse = null;
                             throw e;
                         }
                     }
                     ScheduleAccessTokenRefresh();
                 }
             }
-            catch (Exception e)
+
+            if (!Player.HasValue)
             {
-                Debug.LogWarning("Failed to load access token from player prefs: " + e.Message);
+                NotifyPlayerStateChangeListeners();
             }
 
             HasInitialized = true;
@@ -149,7 +163,7 @@ namespace SphereKit
             }
         }
 
-        static async Task InternalGetPlayerInfo()
+        static async Task InternalGetPlayerInfo(bool skipResetAuthTokenOnError = false)
         {
             CheckSignedIn();
 
@@ -159,10 +173,12 @@ namespace SphereKit
             if (playerResponse.IsSuccessStatusCode)
             {
                 Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
-                Debug.Log("Player info retrieved for " + Player.Value.UserName);
-            } else
+                NotifyPlayerStateChangeListeners();
+                Debug.Log("Player info retrieved for " + Player?.UserName);
+            }
+            else
             {
-                await HandleErrorResponse(playerResponse);
+                await HandleErrorResponse(playerResponse, skipResetAuthTokenOnError);
             }
         }
 
@@ -184,7 +200,8 @@ namespace SphereKit
             if ((_accessTokenResponse.refreshTokenExpiresAt - DateTime.UtcNow).Value.TotalSeconds <= 120)
             {
                 Debug.LogWarning("Refresh token has expired. User needs to sign in again.");
-                // TODO: Sign in again
+                _accessTokenResponse = null;
+                NotifyPlayerStateChangeListeners();
                 return;
             }
 
@@ -197,9 +214,12 @@ namespace SphereKit
                 Debug.Log("Access token refreshed.");
 
                 ScheduleAccessTokenRefresh();
-            } catch (AuthenticationException)
+            }
+            catch (AuthenticationException)
             {
-                Debug.LogWarning("Failed to refresh token. User needs to sign in again");
+                Debug.LogWarning("Failed to refresh token. User needs to sign in again.");
+                _accessTokenResponse = null;
+                NotifyPlayerStateChangeListeners();
             }
         }
 
@@ -240,7 +260,30 @@ namespace SphereKit
             });
         }
 
-        internal static async Task HandleErrorResponse(HttpResponseMessage response)
+        public static void AddPlayerStateChangeListener(Action<AuthState> onPlayerStateChange, bool requireInitialState = false)
+        {
+            _playerStateChangeListeners.Add(onPlayerStateChange);
+
+            if (requireInitialState)
+            {
+                onPlayerStateChange(_authState);
+            }
+        }
+
+        public static void RemovePlayerStateChangeListener(Action<AuthState> onPlayerStateChange)
+        {
+            _playerStateChangeListeners.Remove(onPlayerStateChange);
+        }
+
+        static void NotifyPlayerStateChangeListeners()
+        {
+            foreach (var listener in _playerStateChangeListeners)
+            {
+                listener(_authState);
+            }
+        }
+
+        internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
         {
             Exception error = null;
             try
@@ -262,7 +305,11 @@ namespace SphereKit
                         break;
                     case HttpStatusCode.Unauthorized:
                         error = new AuthenticationException(errorData.ErrorCode, errorData.ErrorMessage);
-                        // TODO: Sign in again
+                        if (!skipResetAuthTokenOnError)
+                        {
+                            _accessTokenResponse = null;
+                            NotifyPlayerStateChangeListeners();
+                        }
                         break;
                     case HttpStatusCode.BadRequest:
                         error = new BadRequestException(errorData.ErrorCode, errorData.ErrorMessage);
@@ -274,8 +321,6 @@ namespace SphereKit
                 // Ignore
             }
 
-
-            Debug.LogWarning("Unknown error occurred: " + await response.Content.ReadAsStringAsync());
             error ??= new Exception("An unknown error occurred while using Sphere Kit.");
 
             throw error;
@@ -291,7 +336,8 @@ namespace SphereKit
                 using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_serverUrl}/oauth/signout");
                 requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
                 var playerResponse = await _httpClient.SendAsync(requestMessage);
-                if (!playerResponse.IsSuccessStatusCode) {
+                if (!playerResponse.IsSuccessStatusCode)
+                {
                     await HandleErrorResponse(playerResponse);
                 }
             }
@@ -303,6 +349,7 @@ namespace SphereKit
             _accessTokenResponse = null;
             _refreshAccessTokenTimer?.Dispose();
             _refreshAccessTokenTimer = null;
+            NotifyPlayerStateChangeListeners();
             Debug.Log("Variables disposed.");
 
             // Clear player prefs
@@ -315,6 +362,12 @@ namespace SphereKit
             // Create new authentication session
             InitialiseAuthenticationSession();
             Debug.Log("Signed out.");
+        }
+
+        public static async Task Dispose()
+        {
+            await SignOut();
+            _playerStateChangeListeners.Clear();
         }
     }
 }
