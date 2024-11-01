@@ -28,6 +28,7 @@ namespace SphereKit
         static readonly HttpClient _httpClient = new();
         static List<Action<AuthState>> _playerStateChangeListeners = new();
         static AuthState _authState { get { return new AuthState(_accessTokenResponse != null, Player); } }
+        static string _uid { get { return _accessTokenResponse?.user.uid; } }
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
@@ -81,7 +82,7 @@ namespace SphereKit
                 {
                     try
                     {
-                        await InternalGetPlayerInfo(true);
+                        await InternalGetPlayerInfo(_uid, true);
                     }
                     catch (AuthenticationException e)
                     {
@@ -148,7 +149,7 @@ namespace SphereKit
 
             // Start OAuth2 flow
             _accessTokenResponse = await _authenticationSession.AuthenticateAsync();
-            await GetPlayerInfo();
+            await GetPlayerInfo(_uid);
             StoreAccessTokenResponse();
 
             Debug.Log("Access token received from server.");
@@ -163,30 +164,37 @@ namespace SphereKit
             }
         }
 
-        static async Task InternalGetPlayerInfo(bool skipResetAuthTokenOnError = false)
+        static async Task<Player?> InternalGetPlayerInfo(string uid, bool skipResetAuthTokenOnError = false)
         {
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{_accessTokenResponse.user.uid}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{uid}");
             requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
             var playerResponse = await _httpClient.SendAsync(requestMessage);
             if (playerResponse.IsSuccessStatusCode)
             {
-                Player = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
-                NotifyPlayerStateChangeListeners();
-                Debug.Log("Player info retrieved for " + Player?.UserName);
+                var retrievedPlayer = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync());
+                if (uid == _uid)
+                {
+                    Player = retrievedPlayer;
+                    NotifyPlayerStateChangeListeners();
+                }
+                Debug.Log("Player info retrieved for " + retrievedPlayer.UserName);
+
+                return retrievedPlayer;
             }
             else
             {
                 await HandleErrorResponse(playerResponse, skipResetAuthTokenOnError);
+                return null;
             }
         }
 
-        public static async Task GetPlayerInfo()
+        public static async Task<Player> GetPlayerInfo(string uid)
         {
             CheckInitialized();
 
-            await InternalGetPlayerInfo();
+            return (await InternalGetPlayerInfo(uid)).Value;
         }
 
         static async Task RefreshAccessToken()
@@ -208,7 +216,7 @@ namespace SphereKit
             try
             {
                 _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-                await GetPlayerInfo();
+                await GetPlayerInfo(_uid);
                 StoreAccessTokenResponse();
 
                 Debug.Log("Access token refreshed.");
@@ -283,7 +291,27 @@ namespace SphereKit
             }
         }
 
-        internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
+        public static async Task<long> GetPlayerCount()
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players:count");
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            var playerCountResponse = await _httpClient.SendAsync(requestMessage);
+            if (playerCountResponse.IsSuccessStatusCode)
+            {
+                var playerCountResponseData = JsonConvert.DeserializeObject<PlayerCountResponse>(await playerCountResponse.Content.ReadAsStringAsync());
+                return playerCountResponseData.PlayerCount;
+            }
+            else
+            {
+                await HandleErrorResponse(playerCountResponse);
+                return 0;
+            }
+        }
+
+            internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
         {
             Exception error = null;
             try

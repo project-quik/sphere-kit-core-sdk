@@ -23,11 +23,11 @@ namespace SphereKit
         public readonly string DisplayName;
 
         [Preserve]
-        [DataMember(IsRequired = true, Name = "profilepicURL")]
+        [DataMember(Name = "profilepicURL")]
         public readonly string ProfilePicUrl;
 
         [Preserve]
-        [DataMember(IsRequired = true, Name = "email")]
+        [DataMember(Name = "email")]
         public readonly string Email;
 
         [Preserve]
@@ -66,7 +66,7 @@ namespace SphereKit
                 BanStartTime = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
             }
         }
-        public DateTime BanStartTime { get; private set; }
+        public DateTime? BanStartTime { get; private set; }
 
         [Preserve]
         [DataMember(Name = "banDuration")]
@@ -77,7 +77,7 @@ namespace SphereKit
                 BanDuration = TimeSpan.FromHours(value);
             }
         }
-        public TimeSpan BanDuration { get; private set; }
+        public TimeSpan? BanDuration { get; private set; }
 
         [Preserve]
         [DataMember(Name = "banReason")]
