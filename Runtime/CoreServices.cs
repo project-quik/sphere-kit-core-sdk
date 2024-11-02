@@ -311,7 +311,88 @@ namespace SphereKit
             }
         }
 
-            internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
+        public static async Task<Player> UpdatePlayerInfo(Dictionary<PlayerDataField, PlayerDataOperation> update)
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            var updateRequestData = new Dictionary<string, object>();
+            foreach (var keyValuePair in update)
+            {
+                var fieldKey = keyValuePair.Key.key;
+                var operationKey = keyValuePair.Value.OperationType;
+                var operationValue = keyValuePair.Value.Value;
+
+                string operationKeyStr = "";
+
+                switch (operationKey)
+                {
+                    case PlayerDataOperationType.Set:
+                        operationKeyStr = "$set";
+                        break;
+                    case PlayerDataOperationType.Inc:
+                        operationKeyStr = "$inc";
+                        break;
+                    case PlayerDataOperationType.Dec:
+                        operationKeyStr = "$dec";
+                        break;
+                    case PlayerDataOperationType.Min:
+                        operationKeyStr = "$min";
+                        break;
+                    case PlayerDataOperationType.Max:
+                        operationKeyStr = "$max";
+                        break;
+                    case PlayerDataOperationType.Mul:
+                        operationKeyStr = "$mul";
+                        break;
+                    case PlayerDataOperationType.Div:
+                        operationKeyStr = "$div";
+                        break;
+                    case PlayerDataOperationType.Unset:
+                        operationKeyStr = "$unset";
+                        break;
+                }
+
+                if (operationKey != PlayerDataOperationType.Unset)
+                {
+                    if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
+                    {
+                        operationData = new Dictionary<string, object>();
+                        updateRequestData[operationKeyStr] = operationData;
+                    }
+                    var operationDataDict = (Dictionary<string, object>) operationData;
+                    operationDataDict[fieldKey] = operationValue;
+                } else
+                {
+                    if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
+                    {
+                        operationData = new List<object>();
+                        updateRequestData[operationKeyStr] = operationData;
+                    }
+                    var operationDataList = (List<object>) operationData;
+                    operationDataList.Add(fieldKey);
+                }
+            }
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_serverUrl}/auth/players/{_uid}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            requestMessage.Headers.Add("X-Http-Method-Override", "PATCH"); // PATCH method is not supported by UnityWebRequest (as of 6000)
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(updateRequestData), System.Text.Encoding.UTF8, "application/json");
+            Debug.Log("Updating player with update json: " + await requestMessage.Content.ReadAsStringAsync());
+            var playerUpdateResponse = await _httpClient.SendAsync(requestMessage);
+
+            if (playerUpdateResponse.IsSuccessStatusCode)
+            {
+                return await GetPlayerInfo(_uid);
+            }
+            else
+            {
+                await HandleErrorResponse(playerUpdateResponse);
+                return Player.Value;
+            }
+        }
+
+        internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
         {
             Exception error = null;
             try
@@ -349,6 +430,10 @@ namespace SphereKit
                 // Ignore
             }
 
+            if (error == null)
+            {
+                Debug.LogWarning("Unknown error occured: " + await response.Content.ReadAsStringAsync());
+            }
             error ??= new Exception("An unknown error occurred while using Sphere Kit.");
 
             throw error;
