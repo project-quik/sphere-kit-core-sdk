@@ -9,6 +9,8 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using SphereKit.Utils;
+using System.Linq;
 
 namespace SphereKit
 {
@@ -301,7 +303,7 @@ namespace SphereKit
             var playerCountResponse = await _httpClient.SendAsync(requestMessage);
             if (playerCountResponse.IsSuccessStatusCode)
             {
-                var playerCountResponseData = JsonConvert.DeserializeObject<PlayerCountResponse>(await playerCountResponse.Content.ReadAsStringAsync());
+                var playerCountResponseData = JsonConvert.DeserializeObject<GetPlayerCountResponse>(await playerCountResponse.Content.ReadAsStringAsync());
                 return playerCountResponseData.PlayerCount;
             }
             else
@@ -389,6 +391,64 @@ namespace SphereKit
             {
                 await HandleErrorResponse(playerUpdateResponse);
                 return Player.Value;
+            }
+        }
+
+        public static AchievementsCursor GetAllAchievements(string query = "", int pageSize = 30, bool queryByGroup = false)
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            string currentStartAfter = null;
+            bool reachedEnd = false;
+
+            return new AchievementsCursor(async () =>
+            {
+                if (reachedEnd) return new Achievement[0];
+
+                var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
+                if (achievements.Length < pageSize || achievements.Length == 0)
+                {
+                    reachedEnd = true;
+                }
+                currentStartAfter = achievements.LastOrDefault()?.Id;
+                return achievements;
+            });
+        }
+
+        static async Task<Achievement[]> GetAchievementsPage(string query, int limit, string startAfter, bool queryByGroup)
+        {
+            var baseUrl = $"{_serverUrl}/achievements";
+            var parameters = new Dictionary<string, string>
+            {
+                { "limit", limit.ToString() },
+            };
+            if (!string.IsNullOrEmpty(query))
+            {
+                parameters["query"] = query;
+            }
+            if (!string.IsNullOrEmpty(startAfter))
+            {
+                parameters["startAfter"] = startAfter;
+            }
+            if (queryByGroup)
+            {
+                parameters["queryByGroup"] = "true";
+            }
+            var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            var achievementsResponse = await _httpClient.SendAsync(requestMessage);
+            if (achievementsResponse.IsSuccessStatusCode)
+            {
+                var achievementsResponseData = JsonConvert.DeserializeObject<GetAchievementsResponse>(await achievementsResponse.Content.ReadAsStringAsync());
+                return achievementsResponseData.Achievements;
+            }
+            else
+            {
+                await HandleErrorResponse(achievementsResponse);
+                return new Achievement[0];
             }
         }
 

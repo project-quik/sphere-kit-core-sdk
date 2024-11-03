@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Web;
 
-namespace Cdm.Authentication.Utils
+namespace SphereKit.Utils
 {
-    public class UrlBuilder
+    internal class UrlBuilder
     {
         private readonly UriBuilder _uriBuilder;
         private readonly NameValueCollection _query;
@@ -16,12 +16,12 @@ namespace Cdm.Authentication.Utils
             _query = HttpUtility.ParseQueryString("");
         }
 
-        public static UrlBuilder New(string url)
+        internal static UrlBuilder New(string url)
         {
             return new UrlBuilder(url);
         }
 
-        public UrlBuilder SetQueryParameters(Dictionary<string, string> parameters)
+        internal UrlBuilder SetQueryParameters(Dictionary<string, string> parameters)
         {
             foreach (var p in parameters)
             {
