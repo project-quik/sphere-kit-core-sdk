@@ -1,4 +1,7 @@
+using Newtonsoft.Json;
+using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 using UnityEngine.Scripting;
 
 namespace SphereKit
@@ -38,5 +41,24 @@ namespace SphereKit
         [Preserve]
         [DataMember(IsRequired = true, Name = "percentageAchieved")]
         public readonly float PercentageAchieved;
+
+        static readonly HttpClient _httpClient = new();
+
+        public async Task<DetailedAchievement> GetDetailedAchievement()
+        {
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements/{Id}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
+            var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);
+            if (detailedAchievementResponse.IsSuccessStatusCode)
+            {
+                var detailedAchievement = JsonConvert.DeserializeObject<DetailedAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync());
+                return detailedAchievement;
+            }
+            else
+            {
+                await CoreServices.HandleErrorResponse(detailedAchievementResponse);
+                return null;
+            }
+        }
     }
 }

@@ -18,7 +18,8 @@ namespace SphereKit
     {
         static public bool HasInitialized { get; private set; } = false;
         static public Player? Player { get; private set; }
-        static internal string AccessToken { get { return _accessTokenResponse?.accessToken; } }
+        static internal string AccessToken { get => _accessTokenResponse?.accessToken; }
+        static internal string ServerUrl { get => _serverUrl; }
 
         static string _clientId;
         static string _serverUrl;
@@ -115,7 +116,7 @@ namespace SphereKit
                 scope = "profile project",
                 redirectUri = _redirectUri,
             };
-            var auth = new SphereAuth(authConfig, _serverUrl);
+            var auth = new SphereAuth(authConfig, ServerUrl);
             var crossPlatformBrowser = new CrossPlatformBrowser();
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsPlayer, new StandaloneBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WindowsEditor, new StandaloneBrowser());
@@ -170,8 +171,8 @@ namespace SphereKit
         {
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players/{uid}");
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/auth/players/{uid}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var playerResponse = await _httpClient.SendAsync(requestMessage);
             if (playerResponse.IsSuccessStatusCode)
             {
@@ -298,8 +299,8 @@ namespace SphereKit
             CheckInitialized();
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{_serverUrl}/auth/players:count");
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/auth/players:count");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var playerCountResponse = await _httpClient.SendAsync(requestMessage);
             if (playerCountResponse.IsSuccessStatusCode)
             {
@@ -376,8 +377,8 @@ namespace SphereKit
                 }
             }
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_serverUrl}/auth/players/{_uid}");
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/auth/players/{_uid}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             requestMessage.Headers.Add("X-Http-Method-Override", "PATCH"); // PATCH method is not supported by UnityWebRequest (as of 6000)
             requestMessage.Content = new StringContent(JsonConvert.SerializeObject(updateRequestData), System.Text.Encoding.UTF8, "application/json");
             Debug.Log("Updating player with update json: " + await requestMessage.Content.ReadAsStringAsync());
@@ -418,7 +419,7 @@ namespace SphereKit
 
         static async Task<Achievement[]> GetAchievementsPage(string query, int limit, string startAfter, bool queryByGroup)
         {
-            var baseUrl = $"{_serverUrl}/achievements";
+            var baseUrl = $"{ServerUrl}/achievements";
             var parameters = new Dictionary<string, string>
             {
                 { "limit", limit.ToString() },
@@ -438,7 +439,7 @@ namespace SphereKit
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
-            requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var achievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (achievementsResponse.IsSuccessStatusCode)
             {
@@ -506,8 +507,8 @@ namespace SphereKit
             // Sign out of the server
             if (_accessTokenResponse != null)
             {
-                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{_serverUrl}/oauth/signout");
-                requestMessage.Headers.Add("Authorization", $"Bearer {_accessTokenResponse.accessToken}");
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/oauth/signout");
+                requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
                 var playerResponse = await _httpClient.SendAsync(requestMessage);
                 if (!playerResponse.IsSuccessStatusCode)
                 {
