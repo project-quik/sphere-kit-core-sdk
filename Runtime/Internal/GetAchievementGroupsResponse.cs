@@ -1,0 +1,14 @@
+using System.Runtime.Serialization;
+using UnityEngine.Scripting;
+
+namespace SphereKit
+{
+    [Preserve]
+    [DataContract]
+    internal class GetAchievementGroupsResponse
+    {
+        [Preserve]
+        [DataMember(IsRequired = true, Name = "achievementGroups")]
+        public readonly AchievementGroup[] AchievementGroups;
+    }
+}

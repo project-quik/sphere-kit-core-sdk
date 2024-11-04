@@ -453,6 +453,77 @@ namespace SphereKit
             }
         }
 
+        public static async Task<string[]> ListAllAchievements()
+        {
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:list");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
+            if (listAchievementsResponse.IsSuccessStatusCode)
+            {
+                var listAchievementsResponseData = JsonConvert.DeserializeObject<ListAchievementsResponse>(await listAchievementsResponse.Content.ReadAsStringAsync());
+                return listAchievementsResponseData.AchievementIDs;
+            }
+            else
+            {
+                await HandleErrorResponse(listAchievementsResponse);
+                return new string[0];
+            }
+        }
+
+        public static AchievementGroupsCursor GetAchievementGroups(string query = "", int pageSize = 30)
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            string currentStartAfter = null;
+            bool reachedEnd = false;
+
+            return new AchievementGroupsCursor(async () =>
+            {
+                if (reachedEnd) return new AchievementGroup[0];
+
+                var achievementGroups = await GetAchievementGroupsPage(query, pageSize, currentStartAfter);
+                if (achievementGroups.Length < pageSize || achievementGroups.Length == 0)
+                {
+                    reachedEnd = true;
+                }
+                currentStartAfter = achievementGroups.LastOrDefault()?.Id;
+                return achievementGroups;
+            });
+        }
+
+        static async Task<AchievementGroup[]> GetAchievementGroupsPage(string query, int limit, string startAfter)
+        {
+            var baseUrl = $"{ServerUrl}/achievements:groups";
+            var parameters = new Dictionary<string, string>
+            {
+                { "limit", limit.ToString() },
+            };
+            if (!string.IsNullOrEmpty(query))
+            {
+                parameters["query"] = query;
+            }
+            if (!string.IsNullOrEmpty(startAfter))
+            {
+                parameters["startAfter"] = startAfter;
+            }
+            var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var achievementGroupsResponse = await _httpClient.SendAsync(requestMessage);
+            if (achievementGroupsResponse.IsSuccessStatusCode)
+            {
+                var achievementsResponseData = JsonConvert.DeserializeObject<GetAchievementGroupsResponse>(await achievementGroupsResponse.Content.ReadAsStringAsync());
+                return achievementsResponseData.AchievementGroups;
+            }
+            else
+            {
+                await HandleErrorResponse(achievementGroupsResponse);
+                return new AchievementGroup[0];
+            }
+        }
+
         internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
         {
             Exception error = null;
