@@ -27,6 +27,7 @@ namespace SphereKit
         static string _redirectUri;
         static AuthenticationSession _authenticationSession;
         static AccessTokenResponse _accessTokenResponse;
+        static long accessTokenExpiringIn { get => Math.Max(Convert.ToInt64((_accessTokenResponse.expiresAt.Value - DateTime.UtcNow).TotalMilliseconds) - 120 * 1000, 0); }
         static Timer _refreshAccessTokenTimer;
         static readonly HttpClient _httpClient = new();
         static List<Action<AuthState>> _playerStateChangeListeners = new();
@@ -83,23 +84,16 @@ namespace SphereKit
 
                 if (_accessTokenResponse != null)
                 {
-                    try
+                    if (accessTokenExpiringIn <= 0)
                     {
-                        await InternalGetPlayerInfo(_uid, true);
-                    }
-                    catch (AuthenticationException e)
+                        await RefreshAccessToken();
+                    } else
                     {
-                        if (!_accessTokenResponse.IsExpired())
-                        {
-                            _accessTokenResponse = null;
-                            throw e;
-                        }
+                        await InternalGetPlayerInfo(_uid);
                     }
-                    ScheduleAccessTokenRefresh();
                 }
             }
-
-            if (!Player.HasValue)
+            else
             {
                 NotifyPlayerStateChangeListeners();
             }
@@ -167,7 +161,7 @@ namespace SphereKit
             }
         }
 
-        static async Task<Player?> InternalGetPlayerInfo(string uid, bool skipResetAuthTokenOnError = false)
+        static async Task<Player?> InternalGetPlayerInfo(string uid)
         {
             CheckSignedIn();
 
@@ -188,7 +182,7 @@ namespace SphereKit
             }
             else
             {
-                await HandleErrorResponse(playerResponse, skipResetAuthTokenOnError);
+                await HandleErrorResponse(playerResponse);
                 return null;
             }
         }
@@ -219,7 +213,7 @@ namespace SphereKit
             try
             {
                 _accessTokenResponse = await _authenticationSession.RefreshTokenAsync();
-                await GetPlayerInfo(_uid);
+                await InternalGetPlayerInfo(_uid);
                 StoreAccessTokenResponse();
 
                 Debug.Log("Access token refreshed.");
@@ -242,17 +236,15 @@ namespace SphereKit
                 return;
             }
 
-            var liveExpiresIn = Math.Max(Convert.ToInt64((_accessTokenResponse.expiresAt.Value - DateTime.UtcNow).TotalMilliseconds) - 120 * 1000, 0);
-
             // Schedule a refresh of the access token
-            Debug.Log($"Scheduling access token refresh in {liveExpiresIn}ms");
+            Debug.Log($"Scheduling access token refresh in {accessTokenExpiringIn}ms");
             _refreshAccessTokenTimer?.Dispose();
             _refreshAccessTokenTimer = new Timer(static async (state) =>
             {
                 Debug.Log("Refreshing access token");
                 await RefreshAccessToken();
             });
-            _refreshAccessTokenTimer.Change(liveExpiresIn, Timeout.Infinite);
+            _refreshAccessTokenTimer.Change(accessTokenExpiringIn, Timeout.Infinite);
         }
 
         static void StoreAccessTokenResponse()
