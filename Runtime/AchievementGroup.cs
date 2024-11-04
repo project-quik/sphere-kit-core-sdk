@@ -1,4 +1,7 @@
+using Newtonsoft.Json;
+using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 using UnityEngine.Scripting;
 
 namespace SphereKit
@@ -22,5 +25,24 @@ namespace SphereKit
         [Preserve]
         [DataMember(IsRequired = true, Name = "progress")]
         public readonly float Progress;
+
+        static readonly HttpClient _httpClient = new();
+
+        public async Task<DetailedAchievementGroup> GetDetailedAchievementGroup()
+        {
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements:groups/{Id}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
+            var detailedAchievementGroupResponse = await _httpClient.SendAsync(requestMessage);
+            if (detailedAchievementGroupResponse.IsSuccessStatusCode)
+            {
+                var detailedAchievementGroup = JsonConvert.DeserializeObject<DetailedAchievementGroup>(await detailedAchievementGroupResponse.Content.ReadAsStringAsync());
+                return detailedAchievementGroup;
+            }
+            else
+            {
+                await CoreServices.HandleErrorResponse(detailedAchievementGroupResponse);
+                return null;
+            }
+        }
     }
 }
