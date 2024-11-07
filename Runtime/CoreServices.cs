@@ -361,7 +361,7 @@ namespace SphereKit
                         updateRequestData[operationKeyStr] = operationData;
                     }
                     var operationDataDict = (Dictionary<string, object>) operationData;
-                    operationDataDict[fieldKey] = operationValue;
+                    operationDataDict[fieldKey] = operationValue!;
                 } else
                 {
                     if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
@@ -416,6 +416,9 @@ namespace SphereKit
 
         static async Task<Achievement[]> GetAchievementsPage(string? query, int limit, string? startAfter, bool queryByGroup)
         {
+            CheckInitialized();
+            CheckSignedIn();
+
             var baseUrl = $"{ServerUrl}/achievements";
             var parameters = new Dictionary<string, string>
             {
@@ -452,6 +455,9 @@ namespace SphereKit
 
         public static async Task<string[]> ListAllAchievements()
         {
+            CheckInitialized();
+            CheckSignedIn();
+
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:list");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
@@ -491,6 +497,9 @@ namespace SphereKit
 
         static async Task<AchievementGroup[]> GetAchievementGroupsPage(string? query, int limit, string? startAfter)
         {
+            CheckInitialized();
+            CheckSignedIn();
+
             var baseUrl = $"{ServerUrl}/achievements:groups";
             var parameters = new Dictionary<string, string>
             {

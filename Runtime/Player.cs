@@ -115,6 +115,9 @@ namespace SphereKit
 
         async Task<PlayerAchievement[]> GetPlayerAchievementsPage(string? query, int limit, string? startAfter)
         {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
             var baseUrl = $"{CoreServices.ServerUrl}/auth/players/{Uid}/achievements";
             var parameters = new Dictionary<string, string>
             {

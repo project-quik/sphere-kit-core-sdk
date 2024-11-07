@@ -6,10 +6,10 @@ namespace SphereKit
 {
     [Preserve]
     [DataContract]
-    internal class GetAchievementGroupsResponse
+    internal readonly struct GetAchievementGroupsResponse
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "achievementGroups")]
-        public readonly AchievementGroup[] AchievementGroups = {};
+        public readonly AchievementGroup[] AchievementGroups;
     }
 }

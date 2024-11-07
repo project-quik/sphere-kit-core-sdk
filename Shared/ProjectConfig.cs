@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
+#nullable enable
 namespace SphereKit
 {
     public class ProjectConfig : ScriptableObject

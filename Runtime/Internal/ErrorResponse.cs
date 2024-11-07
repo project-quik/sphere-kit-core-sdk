@@ -6,18 +6,18 @@ namespace SphereKit
 {
     [Preserve]
     [DataContract]
-    internal class ErrorResponse
+    internal readonly struct ErrorResponse
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "code")]
-        public readonly string ErrorCode = "";
+        public readonly string ErrorCode;
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "message")]
-        public readonly string ErrorMessage = "";
+        public readonly string ErrorMessage;
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "statusCode")]
-        public readonly int StatusCode = 400;
+        public readonly int StatusCode;
     }
 }

@@ -31,6 +31,9 @@ namespace SphereKit
 
         public async Task<DetailedAchievementGroup> GetDetailedAchievementGroup()
         {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements:groups/{Id}");
             requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
             var detailedAchievementGroupResponse = await _httpClient.SendAsync(requestMessage);

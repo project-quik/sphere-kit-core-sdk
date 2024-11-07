@@ -47,6 +47,9 @@ namespace SphereKit
 
         public async Task<DetailedAchievement> GetDetailedAchievement()
         {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements/{Id}");
             requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
             var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);

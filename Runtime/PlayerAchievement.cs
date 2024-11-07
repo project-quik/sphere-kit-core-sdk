@@ -30,6 +30,9 @@ namespace SphereKit
 
         public new async Task<DetailedPlayerAchievement> GetDetailedAchievement()
         {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
             Assert.IsNotNull(Player, "Player is not set for this player achievement.");
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/auth/players/{Player.Uid}/achievements/{Id}");
