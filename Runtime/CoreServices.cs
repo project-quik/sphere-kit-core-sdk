@@ -18,7 +18,7 @@ namespace SphereKit
     public class CoreServices
     {
         static public bool HasInitialized { get; private set; } = false;
-        static public Player? Player { get; private set; } = null;
+        static public Player? CurrentPlayer { get; private set; } = null;
         static internal string? AccessToken { get => _accessTokenResponse?.accessToken; }
         static internal string ServerUrl { get => _serverUrl; }
 
@@ -34,7 +34,7 @@ namespace SphereKit
         static Timer? _refreshAccessTokenTimer;
         static readonly HttpClient _httpClient = new();
         static List<Action<AuthState>> _playerStateChangeListeners = new();
-        static AuthState _authState { get { return new AuthState(_accessTokenResponse != null, Player); } }
+        static AuthState _authState { get { return new AuthState(_accessTokenResponse != null, CurrentPlayer); } }
         static string? _uid { get { return _accessTokenResponse?.user.uid; } }
 
         private const string accessTokenResponseKey = "accessTokenResponse";
@@ -176,7 +176,7 @@ namespace SphereKit
                 var retrievedPlayer = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync())!;
                 if (uid == _uid)
                 {
-                    Player = retrievedPlayer;
+                    CurrentPlayer = retrievedPlayer;
                     NotifyPlayerStateChangeListeners();
                 }
                 Debug.Log("Player info retrieved for " + retrievedPlayer.UserName);
@@ -585,7 +585,7 @@ namespace SphereKit
             }
 
             // Dispose variables
-            Player = null;
+            CurrentPlayer = null;
             _authenticationSession?.Dispose();
             _authenticationSession = null;
             _accessTokenResponse = null;

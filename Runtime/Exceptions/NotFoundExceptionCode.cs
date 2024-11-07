@@ -1,5 +1,6 @@
 using System;
 
+#nullable enable
 namespace SphereKit
 {
     public enum NotFoundExceptionCode

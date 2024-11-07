@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
+#nullable enable
 namespace SphereKit
 {
     public class PlayerAchievementsCursor

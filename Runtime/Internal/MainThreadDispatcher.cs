@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 
+#nullable enable
 namespace SphereKit
 {
     internal static class MainThreadDispatcher
     {
         private static readonly Queue<Action> _executionQueue = new();
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static SynchronizationContext _mainThreadContext;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()

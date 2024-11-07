@@ -4,6 +4,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -12,35 +13,35 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "name")]
-        public readonly string Id;
+        public readonly string Id = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "displayName")]
-        public readonly string DisplayName;
+        public readonly string DisplayName = "";
 
         [Preserve]
         [DataMember(Name = "coverURL")]
-        public readonly string CoverUrl;
+        public readonly string? CoverUrl;
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "shortDescription")]
-        public readonly string ShortDescription;
+        public readonly string ShortDescription = "";
 
         [Preserve]
         [DataMember(Name = "progress")]
-        public readonly float Progress;
+        public readonly float? Progress;
 
         [Preserve]
         [DataMember(Name = "groupName")]
-        public readonly string GroupName;
+        public readonly string? GroupName;
 
         [Preserve]
         [DataMember(Name = "groupOrder")]
-        public readonly int GroupOrder;
+        public readonly int? GroupOrder;
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "percentageAchieved")]
-        public readonly float PercentageAchieved;
+        public readonly float PercentageAchieved = 0f;
 
         static readonly HttpClient _httpClient = new();
 
@@ -51,13 +52,13 @@ namespace SphereKit
             var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);
             if (detailedAchievementResponse.IsSuccessStatusCode)
             {
-                var detailedAchievement = JsonConvert.DeserializeObject<DetailedAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync());
+                var detailedAchievement = JsonConvert.DeserializeObject<DetailedAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync())!;
                 return detailedAchievement;
             }
             else
             {
                 await CoreServices.HandleErrorResponse(detailedAchievementResponse);
-                return null;
+                return new DetailedAchievement();
             }
         }
     }

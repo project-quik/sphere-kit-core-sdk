@@ -1,3 +1,4 @@
+#nullable enable
 namespace SphereKit
 {
     public readonly struct AuthState

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Web;
 
+#nullable enable
 namespace SphereKit.Utils
 {
     internal class UrlBuilder

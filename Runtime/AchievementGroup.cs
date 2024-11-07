@@ -4,6 +4,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -12,19 +13,19 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "name")]
-        public readonly string Id;
+        public readonly string Id = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "displayName")]
-        public readonly string DisplayName;
+        public readonly string DisplayName = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "shortDescription")]
-        public readonly string ShortDescription;
+        public readonly string ShortDescription = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "progress")]
-        public readonly float Progress;
+        public readonly float Progress = 0f;
 
         static readonly HttpClient _httpClient = new();
 
@@ -35,13 +36,13 @@ namespace SphereKit
             var detailedAchievementGroupResponse = await _httpClient.SendAsync(requestMessage);
             if (detailedAchievementGroupResponse.IsSuccessStatusCode)
             {
-                var detailedAchievementGroup = JsonConvert.DeserializeObject<DetailedAchievementGroup>(await detailedAchievementGroupResponse.Content.ReadAsStringAsync());
+                var detailedAchievementGroup = JsonConvert.DeserializeObject<DetailedAchievementGroup>(await detailedAchievementGroupResponse.Content.ReadAsStringAsync())!;
                 return detailedAchievementGroup;
             }
             else
             {
                 await CoreServices.HandleErrorResponse(detailedAchievementGroupResponse);
-                return null;
+                return new DetailedAchievementGroup();
             }
         }
     }

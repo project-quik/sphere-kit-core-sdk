@@ -1,6 +1,7 @@
 using System.Runtime.Serialization;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -9,14 +10,14 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "code")]
-        public string ErrorCode { get; set; }
+        public readonly string ErrorCode = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "message")]
-        public string ErrorMessage { get; set; }
+        public readonly string ErrorMessage = "";
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "statusCode")]
-        public int StatusCode { get; set; }
+        public readonly int StatusCode = 400;
     }
 }

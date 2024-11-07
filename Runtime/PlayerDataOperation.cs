@@ -1,13 +1,14 @@
 using System;
 
+#nullable enable
 namespace SphereKit
 {
     public class PlayerDataOperation
     {
         public readonly PlayerDataOperationType OperationType;
-        public readonly object Value;
+        public readonly object? Value;
 
-        private PlayerDataOperation(PlayerDataOperationType operationType, object value)
+        private PlayerDataOperation(PlayerDataOperationType operationType, object? value)
         {
             OperationType = operationType;
             Value = value;

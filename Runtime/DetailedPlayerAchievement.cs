@@ -2,6 +2,7 @@ using System;
 using System.Runtime.Serialization;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -17,6 +18,6 @@ namespace SphereKit
                 AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
             }
         }
-        public DateTime AchievedDate { get; private set; }
+        public DateTime AchievedDate { get; private set; } = new DateTime();
     }
 }

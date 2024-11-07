@@ -1,6 +1,7 @@
 using System.Runtime.Serialization;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -9,6 +10,6 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "achievements")]
-        public readonly Achievement[] Achievements;
+        public readonly Achievement[] Achievements = {};
     }
 }

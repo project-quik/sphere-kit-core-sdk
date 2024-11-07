@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine.Assertions;
 using UnityEngine.Scripting;
 
+#nullable enable
 namespace SphereKit
 {
     [Preserve]
@@ -21,9 +22,9 @@ namespace SphereKit
                 AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
             }
         }
-        public DateTime AchievedDate { get; private set; }
+        public DateTime AchievedDate { get; private set; } = new DateTime();
 
-        internal Player Player { get; set; }
+        internal Player Player { get; set; } = new Player();
 
         static readonly HttpClient _httpClient = new();
 
@@ -36,13 +37,13 @@ namespace SphereKit
             var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);
             if (detailedAchievementResponse.IsSuccessStatusCode)
             {
-                var detailedAchievement = JsonConvert.DeserializeObject<DetailedPlayerAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync());
+                var detailedAchievement = JsonConvert.DeserializeObject<DetailedPlayerAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync())!;
                 return detailedAchievement;
             }
             else
             {
                 await CoreServices.HandleErrorResponse(detailedAchievementResponse);
-                return null;
+                return new DetailedPlayerAchievement();
             }
         }
     }
