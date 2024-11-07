@@ -9,13 +9,13 @@ namespace SphereKit
         public const string ConfigPath = "SphereKitConfig";
 
         [SerializeField]
-        public string clientID;
+        public string clientID = "";
 
         [SerializeField]
-        public string serverURL;
+        public string serverURL = ""; // TODO: Set server URL close to launch
 
         [SerializeField]
-        public string deepLinkScheme;
+        public string deepLinkScheme = "";
 
         public static ProjectConfig GetOrCreateConfig()
         {
@@ -24,9 +24,6 @@ namespace SphereKit
             if (config == null)
             {
                 config = CreateInstance<ProjectConfig>();
-                config.clientID = "";
-                config.serverURL = ""; // TODO: Set server URL close to launch
-                config.deepLinkScheme = "";
                 if (!AssetDatabase.IsValidFolder("Assets/Resources"))
                 {
                     AssetDatabase.CreateFolder("Assets", "Resources");

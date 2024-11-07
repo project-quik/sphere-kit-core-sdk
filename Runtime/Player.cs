@@ -151,5 +151,25 @@ namespace SphereKit
                 return new PlayerAchievement[0];
             }
         }
+
+        public async Task<ListedPlayerAchievement[]> ListPlayerAchievements()
+        {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/auth/players/{Uid}/achievements:list");
+            requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
+            var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
+            if (listAchievementsResponse.IsSuccessStatusCode)
+            {
+                var listAchievementsResponseData = JsonConvert.DeserializeObject<ListPlayerAchievementsResponse>(await listAchievementsResponse.Content.ReadAsStringAsync())!;
+                return listAchievementsResponseData.Achievements;
+            }
+            else
+            {
+                await CoreServices.HandleErrorResponse(listAchievementsResponse);
+                return new ListedPlayerAchievement[0];
+            }
+        }
     }
 }
