@@ -19,7 +19,7 @@ namespace SphereKit
         public readonly string DisplayName;
 
         [Preserve]
-        [DataMember(Name = "cover")]
+        [DataMember(Name = "coverURL")]
         public readonly string CoverUrl;
 
         [Preserve]

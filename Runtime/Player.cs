@@ -136,6 +136,10 @@ namespace SphereKit
             if (achievementsResponse.IsSuccessStatusCode)
             {
                 var achievementsResponseData = JsonConvert.DeserializeObject<GetPlayerAchievementsResponse>(await achievementsResponse.Content.ReadAsStringAsync())!;
+                foreach (var achievement in achievementsResponseData.Achievements)
+                {
+                    achievement.Player = this;   
+                }
                 return achievementsResponseData.Achievements;
             }
             else
