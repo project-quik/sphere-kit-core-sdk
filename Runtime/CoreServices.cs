@@ -530,6 +530,34 @@ namespace SphereKit
             }
         }
 
+        public static async Task AddAchievement(string achievementId)
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var addAchievementResponse = await _httpClient.SendAsync(requestMessage);
+            if (!addAchievementResponse.IsSuccessStatusCode)
+            {
+                await HandleErrorResponse(addAchievementResponse);
+            }
+        }
+
+        public static async Task RemoveAchievement(string achievementId)
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var removeAchievementResponse = await _httpClient.SendAsync(requestMessage);
+            if (!removeAchievementResponse.IsSuccessStatusCode)
+            {
+                await HandleErrorResponse(removeAchievementResponse);
+            }
+        }
+
         internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
         {
             Exception? error = null;
