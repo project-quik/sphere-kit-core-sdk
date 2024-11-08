@@ -530,6 +530,26 @@ namespace SphereKit
             }
         }
 
+        public static async Task<ListedAchievementGroup[]> ListAchievementGroups()
+        {
+            CheckInitialized();
+            CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:groups:list");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var listAchievementGroupsResponse = await _httpClient.SendAsync(requestMessage);
+            if (listAchievementGroupsResponse.IsSuccessStatusCode)
+            {
+                var listAchievementGroupsResponseData = JsonConvert.DeserializeObject<ListAchievementGroupsResponse>(await listAchievementGroupsResponse.Content.ReadAsStringAsync())!;
+                return listAchievementGroupsResponseData.AchievementGroups;
+            }
+            else
+            {
+                await HandleErrorResponse(listAchievementGroupsResponse);
+                return new ListedAchievementGroup[0];
+            }
+        }
+
         public static async Task AddAchievement(string achievementId)
         {
             CheckInitialized();
