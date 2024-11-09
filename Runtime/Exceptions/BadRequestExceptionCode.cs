@@ -16,7 +16,15 @@ namespace SphereKit
         InvalidCodeVerifier = 9,
         MismatchClientIDAuthorizationCode = 10,
         MismatchClientIDRefreshToken = 11,
-        ValidationFailed = 12,
+        InvalidQuery = 12,
+        AchievementAlreadyAdded = 13,
+        SameKeyMultipleOperations = 14,
+        InvalidModifyDataType = 15,
+        InvalidKeys = 16,
+        InvalidUpdateDataType = 17,
+        PlayerMetadataLimitReached = 18,
+        DivideByZero = 19,
+        ValidationFailed = 20,
     }
 
     internal static class BadRequestExceptionCodeExtensions
@@ -36,6 +44,14 @@ namespace SphereKit
                 "auth/invalid-code-verifier" => BadRequestExceptionCode.InvalidCodeVerifier,
                 "auth/mismatch-client-id-authcode" => BadRequestExceptionCode.MismatchClientIDAuthorizationCode,
                 "auth/mismatch-client-id-refresh" => BadRequestExceptionCode.MismatchClientIDRefreshToken,
+                "auth/same-key-multiple-operations" => BadRequestExceptionCode.SameKeyMultipleOperations,
+                "auth/invalid-modify-data-type" => BadRequestExceptionCode.InvalidModifyDataType,
+                "auth/invalid-keys" => BadRequestExceptionCode.InvalidKeys,
+                "auth/invalid-data-type" => BadRequestExceptionCode.InvalidUpdateDataType,
+                "auth/metadata-limit-reached" => BadRequestExceptionCode.PlayerMetadataLimitReached,
+                "auth/divide-by-zero" => BadRequestExceptionCode.DivideByZero,
+                "achievements/invalid-query" => BadRequestExceptionCode.InvalidQuery,
+                "achievements/achievement-already-added" => BadRequestExceptionCode.AchievementAlreadyAdded,
                 "FST_VALIDATION_ERROR" => BadRequestExceptionCode.ValidationFailed,
                 _ => throw new Exception($"Unknown exception code: {code}"),
             };
