@@ -19,6 +19,7 @@ namespace SphereKit
     {
         static public bool HasInitialized { get; private set; } = false;
         static public Player? CurrentPlayer { get; private set; } = null;
+        static public SphereKitSettings? Settings { get; private set; } = null;
         static internal string? AccessToken { get => _accessTokenResponse?.accessToken; }
         static internal string ServerUrl { get => _serverUrl; }
 
@@ -93,6 +94,7 @@ namespace SphereKit
                     } else
                     {
                         await InternalGetPlayerInfo(_uid!);
+                        await GetSettings();
                     }
                 }
             }
@@ -149,7 +151,8 @@ namespace SphereKit
 
             // Start OAuth2 flow
             _accessTokenResponse = await _authenticationSession!.AuthenticateAsync();
-            await GetPlayerInfo(_uid!);
+            await InternalGetPlayerInfo(_uid!);
+            await GetSettings();
             StoreAccessTokenResponse();
 
             Debug.Log("Access token received from server.");
@@ -197,6 +200,24 @@ namespace SphereKit
             return await InternalGetPlayerInfo(uid);
         }
 
+        static async Task GetSettings()
+        {
+            CheckSignedIn();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:settings");
+            requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
+            var settingsResponse = await _httpClient.SendAsync(requestMessage);
+            if (settingsResponse.IsSuccessStatusCode)
+            {
+                Settings = JsonConvert.DeserializeObject<SphereKitSettings>(await settingsResponse.Content.ReadAsStringAsync())!;
+                Debug.Log("Settings retrieved and set.");
+            }
+            else
+            {
+                await HandleErrorResponse(settingsResponse);
+            }
+        }
+
         static async Task RefreshAccessToken()
         {
             if (_accessTokenResponse == null)
@@ -219,6 +240,7 @@ namespace SphereKit
             {
                 _accessTokenResponse = await _authenticationSession!.RefreshTokenAsync();
                 await InternalGetPlayerInfo(_uid!);
+                await GetSettings();
                 StoreAccessTokenResponse();
 
                 Debug.Log("Access token refreshed.");
