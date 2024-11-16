@@ -33,7 +33,7 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(Name = "groupName")]
-        public readonly string? GroupName;
+        public readonly string? GroupId;
 
         [Preserve]
         [DataMember(Name = "groupOrder")]

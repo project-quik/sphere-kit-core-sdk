@@ -69,10 +69,10 @@ namespace SphereKit
         {
             set
             {
-                BanStartTime = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
+                BanStartDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
             }
         }
-        public DateTime? BanStartTime { get; private set; }
+        public DateTime? BanStartDate { get; private set; }
 
         [Preserve]
         [DataMember(Name = "banDuration")]
