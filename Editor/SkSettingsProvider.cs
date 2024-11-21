@@ -8,7 +8,7 @@ namespace SphereKit.Editor
         private SerializedObject _projectConfig;
         internal const string ConfigPath = ProjectConfig.ConfigPath;
 
-        internal SkSettingsProvider(string path, SettingsScope scope = SettingsScope.Project)
+        private SkSettingsProvider(string path, SettingsScope scope = SettingsScope.Project)
             : base(path, scope) { }
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
@@ -27,7 +27,7 @@ namespace SphereKit.Editor
         [SettingsProvider]
         internal static SettingsProvider CreateCustomSettingsProvider()
         {
-            return new SkSettingsProvider("Project/Sphere Kit", SettingsScope.Project);
+            return new SkSettingsProvider("Project/Sphere Kit");
         }
     }
 }

@@ -41,7 +41,7 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "percentageAchieved")]
-        public readonly float PercentageAchieved = 0f;
+        public readonly float PercentageAchieved;
 
         static readonly HttpClient _httpClient = new();
 

@@ -15,16 +15,13 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "timestamp")]
-        long _achievedTimeMillis
+        private long _achievedTimeMillis
         {
-            set
-            {
-                AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
-            }
+            set => AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
         }
-        public DateTime AchievedDate { get; private set; } = new DateTime();
+        public DateTime AchievedDate { get; private set; }
 
-        internal Player Player { get; set; } = new Player();
+        internal Player Player { get; set; } = new();
 
         static readonly HttpClient _httpClient = new();
 

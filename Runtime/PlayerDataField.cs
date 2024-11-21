@@ -3,31 +3,32 @@ namespace SphereKit
 {
     public class PlayerDataField
     {
-        public static PlayerDataField Level { get { return new PlayerDataField("level"); } }
-        public static PlayerDataField Score { get { return new PlayerDataField("score"); } }
+        public static PlayerDataField Level => new("level");
+        public static PlayerDataField Score => new("score");
+
         public static PlayerDataField Metadata(string key)
         {
             return new PlayerDataField($"metadata.{key}");
         }
 
-        internal readonly string key;
+        internal readonly string Key;
 
         private PlayerDataField(string key)
         {
-            this.key = key;
+            Key = key;
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is PlayerDataField other)
             {
-                return key == other.key;
+                return Key == other.Key;
             }
             return false;
         }
 
         public override int GetHashCode()
         {
-            return key.GetHashCode();
+            return Key.GetHashCode();
         }
     }
 }

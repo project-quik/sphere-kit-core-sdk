@@ -15,28 +15,32 @@ using System.Linq;
 #nullable enable
 namespace SphereKit
 {
-    public class CoreServices
+    public static class CoreServices
     {
-        static public bool HasInitialized { get; private set; } = false;
-        static public Player? CurrentPlayer { get; private set; } = null;
-        static public SphereKitSettings? Settings { get; private set; } = null;
-        static internal string? AccessToken { get => _accessTokenResponse?.accessToken; }
-        static internal string ServerUrl { get => _serverUrl; }
+        public static bool HasInitialized { get; private set; }
+        public static Player? CurrentPlayer { get; private set; }
+        public static SphereKitSettings? Settings { get; private set; }
+        internal static string? AccessToken => _accessTokenResponse?.accessToken;
+        internal static string ServerUrl => _serverUrl;
 
-        static string _clientId = "";
-        static string _serverUrl = "";
-        static string _deepLinkScheme = "";
-        static string _redirectUri = "";
-        static AuthenticationSession? _authenticationSession;
-        static AccessTokenResponse? _accessTokenResponse;
+        private static string _clientId = "";
+        private static string _serverUrl = "";
+        private static string _deepLinkScheme = "";
+        private static string _redirectUri = "";
+        private static AuthenticationSession? _authenticationSession;
+        private static AccessTokenResponse? _accessTokenResponse;
 #pragma warning disable CS8629 // Nullable value type may be null.
-        static long _accessTokenExpiringIn { get => _accessTokenResponse == null ? 0: Math.Max(Convert.ToInt64((_accessTokenResponse.expiresAt - DateTime.UtcNow).Value.TotalMilliseconds) - 120 * 1000, 0); }
+        private static long _accessTokenExpiringIn => _accessTokenResponse == null
+            ? 0
+            : Math.Max(
+                Convert.ToInt64((_accessTokenResponse.expiresAt - DateTime.UtcNow).Value.TotalMilliseconds) -
+                120 * 1000, 0);
 #pragma warning restore CS8629 // Nullable value type may be null.
-        static Timer? _refreshAccessTokenTimer;
-        static readonly HttpClient _httpClient = new();
-        static List<Action<AuthState>> _playerStateChangeListeners = new();
-        static AuthState _authState { get { return new AuthState(_accessTokenResponse != null, CurrentPlayer); } }
-        static string? _uid { get { return _accessTokenResponse?.user.uid; } }
+        private static Timer? _refreshAccessTokenTimer;
+        private static readonly HttpClient _httpClient = new();
+        private static readonly List<Action<AuthState>> _playerStateChangeListeners = new();
+        private static AuthState _authState => new(_accessTokenResponse != null, CurrentPlayer);
+        private static string? _uid => _accessTokenResponse?.user.uid;
 
         private const string accessTokenResponseKey = "accessTokenResponse";
 
@@ -46,16 +50,21 @@ namespace SphereKit
             var config = ProjectConfig.GetOrCreateConfig();
             if (config == null || config.clientID == "")
             {
-                throw new Exception("The Client ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
+                throw new Exception(
+                    "The Client ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
             }
+
             if (config.serverURL == "")
             {
-                throw new Exception("The Server URL has not been configured yet. Please configure Sphere Kit in Project Settings.");
+                throw new Exception(
+                    "The Server URL has not been configured yet. Please configure Sphere Kit in Project Settings.");
             }
+
             if (config.deepLinkScheme == "")
             {
 #if UNITY_EDITOR
-                Debug.LogWarning("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
+                Debug.LogWarning(
+                    "The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
 #endif
             }
 
@@ -64,7 +73,7 @@ namespace SphereKit
             _deepLinkScheme = config.deepLinkScheme;
 
 #if UNITY_IOS || UNITY_ANDROID
-    _redirectUri = _deepLinkScheme + "://oauth";
+            _redirectUri = _deepLinkScheme + "://oauth";
 #else
             _redirectUri = "http://localhost:8080/spherekit/oauth";
 #endif
@@ -77,7 +86,9 @@ namespace SphereKit
             {
                 try
                 {
-                    _accessTokenResponse = JsonConvert.DeserializeObject<AccessTokenResponse>(PlayerPrefs.GetString(accessTokenResponseKey));
+                    _accessTokenResponse =
+                        JsonConvert.DeserializeObject<AccessTokenResponse>(
+                            PlayerPrefs.GetString(accessTokenResponseKey));
                     _authenticationSession!.SetAuthenticationInfo(_accessTokenResponse);
                     Debug.Log("Access token loaded from player prefs.");
                 }
@@ -91,7 +102,8 @@ namespace SphereKit
                     if (_accessTokenExpiringIn <= 0)
                     {
                         await RefreshAccessToken();
-                    } else
+                    }
+                    else
                     {
                         await InternalGetPlayerInfo(_uid!);
                         await GetSettings();
@@ -107,8 +119,9 @@ namespace SphereKit
             Debug.Log($"Sphere Kit has been initialized. Client ID is {_clientId}");
         }
 
-        static void InitialiseAuthenticationSession()
+        private static void InitialiseAuthenticationSession()
         {
+            // ReSharper disable once AccessToStaticMemberViaDerivedType
             var authConfig = new AuthorizationCodeFlowWithPkce.Configuration()
             {
                 clientId = _clientId,
@@ -124,7 +137,8 @@ namespace SphereKit
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxPlayer, new StandaloneBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.LinuxEditor, new StandaloneBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.Android, new DeepLinkBrowser());
-            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer, new ASWebAuthenticationSessionBrowser());
+            crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.IPhonePlayer,
+                new ASWebAuthenticationSessionBrowser());
             crossPlatformBrowser.platformBrowsers.Add(RuntimePlatform.WebGLPlayer, new StandaloneBrowser());
             _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
         }
@@ -133,7 +147,8 @@ namespace SphereKit
         {
             if (!HasInitialized)
             {
-                throw new Exception("Sphere Kit has not been initialized. Please call SphereKit.Core.Initialize() before calling any other methods.");
+                throw new Exception(
+                    "Sphere Kit has not been initialized. Please call SphereKit.Core.Initialize() before calling any other methods.");
             }
         }
 
@@ -167,7 +182,7 @@ namespace SphereKit
             }
         }
 
-        static async Task<Player> InternalGetPlayerInfo(string uid)
+        private static async Task<Player> InternalGetPlayerInfo(string uid)
         {
             CheckSignedIn();
 
@@ -176,12 +191,14 @@ namespace SphereKit
             var playerResponse = await _httpClient.SendAsync(requestMessage);
             if (playerResponse.IsSuccessStatusCode)
             {
-                var retrievedPlayer = JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync())!;
+                var retrievedPlayer =
+                    JsonConvert.DeserializeObject<Player>(await playerResponse.Content.ReadAsStringAsync())!;
                 if (uid == _uid)
                 {
                     CurrentPlayer = retrievedPlayer;
                     NotifyPlayerStateChangeListeners();
                 }
+
                 Debug.Log("Player info retrieved for " + retrievedPlayer.UserName);
 
                 return retrievedPlayer;
@@ -200,7 +217,7 @@ namespace SphereKit
             return await InternalGetPlayerInfo(uid);
         }
 
-        static async Task GetSettings()
+        private static async Task GetSettings()
         {
             CheckSignedIn();
 
@@ -209,7 +226,8 @@ namespace SphereKit
             var settingsResponse = await _httpClient.SendAsync(requestMessage);
             if (settingsResponse.IsSuccessStatusCode)
             {
-                Settings = JsonConvert.DeserializeObject<SphereKitSettings>(await settingsResponse.Content.ReadAsStringAsync())!;
+                Settings = JsonConvert.DeserializeObject<SphereKitSettings>(await settingsResponse.Content
+                    .ReadAsStringAsync())!;
                 Debug.Log("Settings retrieved and set.");
             }
             else
@@ -218,7 +236,7 @@ namespace SphereKit
             }
         }
 
-        static async Task RefreshAccessToken()
+        private static async Task RefreshAccessToken()
         {
             if (_accessTokenResponse == null)
             {
@@ -255,7 +273,7 @@ namespace SphereKit
             }
         }
 
-        static void ScheduleAccessTokenRefresh()
+        private static void ScheduleAccessTokenRefresh()
         {
             if (_accessTokenResponse == null)
             {
@@ -274,7 +292,7 @@ namespace SphereKit
             _refreshAccessTokenTimer.Change(_accessTokenExpiringIn, Timeout.Infinite);
         }
 
-        static void StoreAccessTokenResponse()
+        private static void StoreAccessTokenResponse()
         {
             if (_accessTokenResponse == null)
             {
@@ -290,7 +308,8 @@ namespace SphereKit
             });
         }
 
-        public static void AddPlayerStateChangeListener(Action<AuthState> onPlayerStateChange, bool requireInitialState = false)
+        public static void AddPlayerStateChangeListener(Action<AuthState> onPlayerStateChange,
+            bool requireInitialState = false)
         {
             _playerStateChangeListeners.Add(onPlayerStateChange);
 
@@ -305,7 +324,7 @@ namespace SphereKit
             _playerStateChangeListeners.Remove(onPlayerStateChange);
         }
 
-        static void NotifyPlayerStateChangeListeners()
+        private static void NotifyPlayerStateChangeListeners()
         {
             foreach (var listener in _playerStateChangeListeners)
             {
@@ -323,7 +342,9 @@ namespace SphereKit
             var playerCountResponse = await _httpClient.SendAsync(requestMessage);
             if (playerCountResponse.IsSuccessStatusCode)
             {
-                var playerCountResponseData = JsonConvert.DeserializeObject<GetPlayerCountResponse>(await playerCountResponse.Content.ReadAsStringAsync());
+                var playerCountResponseData =
+                    JsonConvert.DeserializeObject<GetPlayerCountResponse>(await playerCountResponse.Content
+                        .ReadAsStringAsync());
                 return playerCountResponseData.PlayerCount;
             }
             else
@@ -341,7 +362,7 @@ namespace SphereKit
             var updateRequestData = new Dictionary<string, object>();
             foreach (var keyValuePair in update)
             {
-                var fieldKey = keyValuePair.Key.key;
+                var fieldKey = keyValuePair.Key.Key;
                 var operationKey = keyValuePair.Value.OperationType;
                 var operationValue = keyValuePair.Value.Value;
 
@@ -382,24 +403,29 @@ namespace SphereKit
                         operationData = new Dictionary<string, object>();
                         updateRequestData[operationKeyStr] = operationData;
                     }
-                    var operationDataDict = (Dictionary<string, object>) operationData;
+
+                    var operationDataDict = (Dictionary<string, object>)operationData;
                     operationDataDict[fieldKey] = operationValue!;
-                } else
+                }
+                else
                 {
                     if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
                     {
                         operationData = new List<object>();
                         updateRequestData[operationKeyStr] = operationData;
                     }
-                    var operationDataList = (List<object>) operationData;
+
+                    var operationDataList = (List<object>)operationData;
                     operationDataList.Add(fieldKey);
                 }
             }
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/auth/players/{_uid}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
-            requestMessage.Headers.Add("X-Http-Method-Override", "PATCH"); // PATCH method is not supported by UnityWebRequest (as of 6000)
-            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(updateRequestData), System.Text.Encoding.UTF8, "application/json");
+            requestMessage.Headers.Add("X-Http-Method-Override",
+                "PATCH"); // PATCH method is not supported by UnityWebRequest (as of 6000)
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(updateRequestData),
+                System.Text.Encoding.UTF8, "application/json");
             Debug.Log("Updating player with update json: " + await requestMessage.Content.ReadAsStringAsync());
             var playerUpdateResponse = await _httpClient.SendAsync(requestMessage);
 
@@ -414,7 +440,8 @@ namespace SphereKit
             }
         }
 
-        public static AchievementsCursor GetAllAchievements(string? query = null, int pageSize = 30, bool queryByGroup = false)
+        public static AchievementsCursor GetAllAchievements(string? query = null, int pageSize = 30,
+            bool queryByGroup = false)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -424,19 +451,21 @@ namespace SphereKit
 
             return new AchievementsCursor(async () =>
             {
-                if (reachedEnd) return new Achievement[0];
+                if (reachedEnd) return Array.Empty<Achievement>();
 
                 var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
                 if (achievements.Length < pageSize || achievements.Length == 0)
                 {
                     reachedEnd = true;
                 }
+
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
             });
         }
 
-        static async Task<Achievement[]> GetAchievementsPage(string? query, int limit, string? startAfter, bool queryByGroup)
+        private static async Task<Achievement[]> GetAchievementsPage(string? query, int limit, string? startAfter,
+            bool queryByGroup)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -450,14 +479,17 @@ namespace SphereKit
             {
                 parameters["query"] = query;
             }
+
             if (!string.IsNullOrEmpty(startAfter))
             {
                 parameters["startAfter"] = startAfter;
             }
+
             if (queryByGroup)
             {
                 parameters["queryByGroup"] = "true";
             }
+
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
@@ -465,13 +497,15 @@ namespace SphereKit
             var achievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (achievementsResponse.IsSuccessStatusCode)
             {
-                var achievementsResponseData = JsonConvert.DeserializeObject<GetAchievementsResponse>(await achievementsResponse.Content.ReadAsStringAsync())!;
+                var achievementsResponseData =
+                    JsonConvert.DeserializeObject<GetAchievementsResponse>(await achievementsResponse.Content
+                        .ReadAsStringAsync());
                 return achievementsResponseData.Achievements;
             }
             else
             {
                 await HandleErrorResponse(achievementsResponse);
-                return new Achievement[0];
+                return Array.Empty<Achievement>();
             }
         }
 
@@ -485,13 +519,15 @@ namespace SphereKit
             var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementsResponse.IsSuccessStatusCode)
             {
-                var listAchievementsResponseData = JsonConvert.DeserializeObject<ListAchievementsResponse>(await listAchievementsResponse.Content.ReadAsStringAsync())!;
+                var listAchievementsResponseData =
+                    JsonConvert.DeserializeObject<ListAchievementsResponse>(await listAchievementsResponse.Content
+                        .ReadAsStringAsync());
                 return listAchievementsResponseData.AchievementIDs;
             }
             else
             {
                 await HandleErrorResponse(listAchievementsResponse);
-                return new string[0];
+                return Array.Empty<string>();
             }
         }
 
@@ -505,19 +541,21 @@ namespace SphereKit
 
             return new AchievementGroupsCursor(async () =>
             {
-                if (reachedEnd) return new AchievementGroup[0];
+                if (reachedEnd) return Array.Empty<AchievementGroup>();
 
                 var achievementGroups = await GetAchievementGroupsPage(query, pageSize, currentStartAfter);
                 if (achievementGroups.Length < pageSize || achievementGroups.Length == 0)
                 {
                     reachedEnd = true;
                 }
+
                 currentStartAfter = achievementGroups.LastOrDefault()?.Id;
                 return achievementGroups;
             });
         }
 
-        static async Task<AchievementGroup[]> GetAchievementGroupsPage(string? query, int limit, string? startAfter)
+        private static async Task<AchievementGroup[]> GetAchievementGroupsPage(string? query, int limit,
+            string? startAfter)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -531,10 +569,12 @@ namespace SphereKit
             {
                 parameters["query"] = query;
             }
+
             if (!string.IsNullOrEmpty(startAfter))
             {
                 parameters["startAfter"] = startAfter;
             }
+
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
@@ -542,13 +582,15 @@ namespace SphereKit
             var achievementGroupsResponse = await _httpClient.SendAsync(requestMessage);
             if (achievementGroupsResponse.IsSuccessStatusCode)
             {
-                var achievementsResponseData = JsonConvert.DeserializeObject<GetAchievementGroupsResponse>(await achievementGroupsResponse.Content.ReadAsStringAsync())!;
+                var achievementsResponseData =
+                    JsonConvert.DeserializeObject<GetAchievementGroupsResponse>(
+                        await achievementGroupsResponse.Content.ReadAsStringAsync());
                 return achievementsResponseData.AchievementGroups;
             }
             else
             {
                 await HandleErrorResponse(achievementGroupsResponse);
-                return new AchievementGroup[0];
+                return Array.Empty<AchievementGroup>();
             }
         }
 
@@ -562,13 +604,15 @@ namespace SphereKit
             var listAchievementGroupsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementGroupsResponse.IsSuccessStatusCode)
             {
-                var listAchievementGroupsResponseData = JsonConvert.DeserializeObject<ListAchievementGroupsResponse>(await listAchievementGroupsResponse.Content.ReadAsStringAsync())!;
+                var listAchievementGroupsResponseData =
+                    JsonConvert.DeserializeObject<ListAchievementGroupsResponse>(
+                        await listAchievementGroupsResponse.Content.ReadAsStringAsync());
                 return listAchievementGroupsResponseData.AchievementGroups;
             }
             else
             {
                 await HandleErrorResponse(listAchievementGroupsResponse);
-                return new ListedAchievementGroup[0];
+                return Array.Empty<ListedAchievementGroup>();
             }
         }
 
@@ -577,7 +621,8 @@ namespace SphereKit
             CheckInitialized();
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post,
+                $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var addAchievementResponse = await _httpClient.SendAsync(requestMessage);
             if (!addAchievementResponse.IsSuccessStatusCode)
@@ -591,7 +636,8 @@ namespace SphereKit
             CheckInitialized();
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Delete,
+                $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var removeAchievementResponse = await _httpClient.SendAsync(requestMessage);
             if (!removeAchievementResponse.IsSuccessStatusCode)
@@ -600,12 +646,14 @@ namespace SphereKit
             }
         }
 
-        internal static async Task HandleErrorResponse(HttpResponseMessage response, bool skipResetAuthTokenOnError = false)
+        internal static async Task HandleErrorResponse(HttpResponseMessage response,
+            bool skipResetAuthTokenOnError = false)
         {
             Exception? error = null;
             try
             {
-                var errorData = JsonConvert.DeserializeObject<ErrorResponse>(await response.Content.ReadAsStringAsync())!;
+                var errorData =
+                    JsonConvert.DeserializeObject<ErrorResponse>(await response.Content.ReadAsStringAsync());
                 switch (response.StatusCode)
                 {
                     case HttpStatusCode.InternalServerError:
@@ -627,6 +675,7 @@ namespace SphereKit
                             _accessTokenResponse = null;
                             NotifyPlayerStateChangeListeners();
                         }
+
                         break;
                     case HttpStatusCode.BadRequest:
                         error = new BadRequestException(errorData.ErrorCode, errorData.ErrorMessage);
@@ -642,6 +691,7 @@ namespace SphereKit
             {
                 Debug.LogWarning("Unknown error occured: " + await response.Content.ReadAsStringAsync());
             }
+
             error ??= new Exception("An unknown error occurred while using Sphere Kit.");
 
             throw error;
@@ -668,8 +718,11 @@ namespace SphereKit
             _authenticationSession?.Dispose();
             _authenticationSession = null;
             _accessTokenResponse = null;
-            _refreshAccessTokenTimer?.Dispose();
-            _refreshAccessTokenTimer = null;
+            if (_refreshAccessTokenTimer != null)
+            {
+                await _refreshAccessTokenTimer.DisposeAsync();
+                _refreshAccessTokenTimer = null;
+            }
             NotifyPlayerStateChangeListeners();
             Debug.Log("Variables disposed.");
 

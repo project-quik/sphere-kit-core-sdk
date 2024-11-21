@@ -40,10 +40,7 @@ namespace SphereKit
         [DataMember(IsRequired = true, Name = "joinDate")]
         string _joinDateStr
         {
-            set
-            {
-                JoinDate = DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            }
+            set => JoinDate = DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
         public DateTime? JoinDate { get; private set; }
 
@@ -59,29 +56,22 @@ namespace SphereKit
         [DataMember(IsRequired = true, Name = "metadata")]
         public readonly Dictionary<string, string> Metadata = new();
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "isBanned")]
-        public readonly bool IsBanned = false;
+        [Preserve] [DataMember(IsRequired = true, Name = "isBanned")]
+        public readonly bool IsBanned;
 
         [Preserve]
         [DataMember(Name = "banStartTime")]
-        long _banStartTimeMillis
+        private long _banStartTimeMillis
         {
-            set
-            {
-                BanStartDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
-            }
+            set => BanStartDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
         }
         public DateTime? BanStartDate { get; private set; }
 
         [Preserve]
         [DataMember(Name = "banDuration")]
-        long _banDurationHours
+        private long _banDurationHours
         {
-            set
-            {
-                BanDuration = TimeSpan.FromHours(value);
-            }
+            set => BanDuration = TimeSpan.FromHours(value);
         }
         public TimeSpan? BanDuration { get; private set; }
 
@@ -101,7 +91,7 @@ namespace SphereKit
 
             return new PlayerAchievementsCursor(async () =>
             {
-                if (reachedEnd) return new PlayerAchievement[0];
+                if (reachedEnd) return Array.Empty<PlayerAchievement>();
 
                 var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter);
                 if (achievements.Length < pageSize || achievements.Length == 0)
@@ -138,7 +128,7 @@ namespace SphereKit
             var achievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (achievementsResponse.IsSuccessStatusCode)
             {
-                var achievementsResponseData = JsonConvert.DeserializeObject<GetPlayerAchievementsResponse>(await achievementsResponse.Content.ReadAsStringAsync())!;
+                var achievementsResponseData = JsonConvert.DeserializeObject<GetPlayerAchievementsResponse>(await achievementsResponse.Content.ReadAsStringAsync());
                 foreach (var achievement in achievementsResponseData.Achievements)
                 {
                     achievement.Player = this;   
@@ -148,7 +138,7 @@ namespace SphereKit
             else
             {
                 await CoreServices.HandleErrorResponse(achievementsResponse);
-                return new PlayerAchievement[0];
+                return Array.Empty<PlayerAchievement>();
             }
         }
 
@@ -162,13 +152,13 @@ namespace SphereKit
             var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementsResponse.IsSuccessStatusCode)
             {
-                var listAchievementsResponseData = JsonConvert.DeserializeObject<ListPlayerAchievementsResponse>(await listAchievementsResponse.Content.ReadAsStringAsync())!;
+                var listAchievementsResponseData = JsonConvert.DeserializeObject<ListPlayerAchievementsResponse>(await listAchievementsResponse.Content.ReadAsStringAsync());
                 return listAchievementsResponseData.Achievements;
             }
             else
             {
                 await CoreServices.HandleErrorResponse(listAchievementsResponse);
-                return new ListedPlayerAchievement[0];
+                return Array.Empty<ListedPlayerAchievement>();
             }
         }
     }

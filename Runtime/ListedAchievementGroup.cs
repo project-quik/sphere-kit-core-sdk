@@ -14,6 +14,6 @@ namespace SphereKit
 
         [Preserve]
         [DataMember(IsRequired = true, Name = "progress")]
-        public readonly float Progress = 0f;
+        public readonly float Progress;
     }
 }

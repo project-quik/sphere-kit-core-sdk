@@ -10,7 +10,7 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "numAchievements")]
-        public readonly int AchievementCount = 0;
+        public readonly int AchievementCount;
 
         [Preserve]
         [DataMember(Name = "scoreLogoURL")]
