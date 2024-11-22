@@ -12,6 +12,9 @@ namespace SphereKit
         public string clientID = "";
 
         [SerializeField]
+        public string projectID = "";
+        
+        [SerializeField]
         public string serverURL = ""; // TODO: Set server URL close to launch
 
         [SerializeField]

@@ -6,7 +6,7 @@ namespace SphereKit
 {
     [Preserve]
     [DataContract]
-    public class SphereKitSettings
+    public class AchievementsSettings
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "numAchievements")]

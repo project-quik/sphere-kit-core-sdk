@@ -11,7 +11,9 @@ using System.Threading.Tasks;
 using UnityEngine;
 using SphereKit.Utils;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("projectquik.spherekit.database")]
 #nullable enable
 namespace SphereKit
 {
@@ -19,11 +21,14 @@ namespace SphereKit
     {
         public static bool HasInitialized { get; private set; }
         public static Player? CurrentPlayer { get; private set; }
-        public static SphereKitSettings? Settings { get; private set; }
+        public static AchievementsSettings? AchievementsSettings { get; private set; }
+        public static DatabaseSettings DatabaseSettings { get; private set; }
         internal static string? AccessToken => _accessTokenResponse?.accessToken;
+        internal static string ProjectId => _projectId;
         internal static string ServerUrl => _serverUrl;
 
         private static string _clientId = "";
+        private static string _projectId = "";
         private static string _serverUrl = "";
         private static string _deepLinkScheme = "";
         private static string _redirectUri = "";
@@ -54,6 +59,12 @@ namespace SphereKit
                     "The Client ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
             }
 
+            if (config == null || config.projectID == "")
+            {
+                throw new Exception(
+                    "The Project ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
+            }
+            
             if (config.serverURL == "")
             {
                 throw new Exception(
@@ -69,6 +80,7 @@ namespace SphereKit
             }
 
             _clientId = config.clientID;
+            _projectId = config.projectID;
             _serverUrl = config.serverURL;
             _deepLinkScheme = config.deepLinkScheme;
 
@@ -80,6 +92,9 @@ namespace SphereKit
 
             // Initialise authentication session
             InitialiseAuthenticationSession();
+            
+            // Get database settings
+            await GetDatabaseSettings();
 
             // Load access token response from player prefs
             if (PlayerPrefs.HasKey(accessTokenResponseKey))
@@ -106,7 +121,7 @@ namespace SphereKit
                     else
                     {
                         await InternalGetPlayerInfo(_uid!);
-                        await GetSettings();
+                        await GetAchievementsSettings();
                     }
                 }
             }
@@ -167,7 +182,7 @@ namespace SphereKit
             // Start OAuth2 flow
             _accessTokenResponse = await _authenticationSession!.AuthenticateAsync();
             await InternalGetPlayerInfo(_uid!);
-            await GetSettings();
+            await GetAchievementsSettings();
             StoreAccessTokenResponse();
 
             Debug.Log("Access token received from server.");
@@ -217,7 +232,7 @@ namespace SphereKit
             return await InternalGetPlayerInfo(uid);
         }
 
-        private static async Task GetSettings()
+        private static async Task GetAchievementsSettings()
         {
             CheckSignedIn();
 
@@ -226,13 +241,34 @@ namespace SphereKit
             var settingsResponse = await _httpClient.SendAsync(requestMessage);
             if (settingsResponse.IsSuccessStatusCode)
             {
-                Settings = JsonConvert.DeserializeObject<SphereKitSettings>(await settingsResponse.Content
+                AchievementsSettings = JsonConvert.DeserializeObject<AchievementsSettings>(await settingsResponse.Content
                     .ReadAsStringAsync())!;
+                
                 Debug.Log("Settings retrieved and set.");
             }
             else
             {
                 await HandleErrorResponse(settingsResponse);
+            }
+        }
+
+        private static async Task GetDatabaseSettings()
+        {
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/databases:list");
+            requestMessage.Headers.Add("X-Sphere-Project-Name", _projectId);
+            var databasesResponse = await _httpClient.SendAsync(requestMessage);
+            if (databasesResponse.IsSuccessStatusCode)
+            {
+                var databaseResponse = JsonConvert.DeserializeObject<ListDatabasesResponse>(await databasesResponse.Content
+                    .ReadAsStringAsync());
+                var databaseId = databaseResponse.Databases.First();
+                DatabaseSettings = new DatabaseSettings(databaseId);
+                
+                Debug.Log("Database settings retrieved and set.");
+            }
+            else
+            {
+                await HandleErrorResponse(databasesResponse);
             }
         }
 
@@ -258,7 +294,7 @@ namespace SphereKit
             {
                 _accessTokenResponse = await _authenticationSession!.RefreshTokenAsync();
                 await InternalGetPlayerInfo(_uid!);
-                await GetSettings();
+                await GetAchievementsSettings();
                 StoreAccessTokenResponse();
 
                 Debug.Log("Access token refreshed.");
