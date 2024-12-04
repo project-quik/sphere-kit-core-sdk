@@ -54,22 +54,16 @@ namespace SphereKit
             // Load configuration
             var config = ProjectConfig.GetOrCreateConfig();
             if (config == null || config.clientID == "")
-            {
                 throw new Exception(
                     "The Client ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
-            }
 
             if (config == null || config.projectID == "")
-            {
                 throw new Exception(
                     "The Project ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
-            }
-            
+
             if (config.serverURL == "")
-            {
                 throw new Exception(
                     "The Server URL has not been configured yet. Please configure Sphere Kit in Project Settings.");
-            }
 
             if (config.deepLinkScheme == "")
             {
@@ -92,7 +86,7 @@ namespace SphereKit
 
             // Initialise authentication session
             InitialiseAuthenticationSession();
-            
+
             // Get database settings
             await GetDatabaseSettings();
 
@@ -131,7 +125,7 @@ namespace SphereKit
             }
 
             HasInitialized = true;
-            Debug.Log($"Sphere Kit has been initialized. Client ID is {_clientId}");
+            Debug.Log($"Sphere Kit has been initialized.");
         }
 
         private static void InitialiseAuthenticationSession()
@@ -141,7 +135,7 @@ namespace SphereKit
             {
                 clientId = _clientId,
                 scope = "profile project",
-                redirectUri = _redirectUri,
+                redirectUri = _redirectUri
             };
             var auth = new SphereAuth(authConfig, ServerUrl);
             var crossPlatformBrowser = new CrossPlatformBrowser();
@@ -161,10 +155,8 @@ namespace SphereKit
         internal static void CheckInitialized()
         {
             if (!HasInitialized)
-            {
                 throw new Exception(
                     "Sphere Kit has not been initialized. Please call SphereKit.Core.Initialize() before calling any other methods.");
-            }
         }
 
         public static async Task SignInWithSphere()
@@ -192,9 +184,7 @@ namespace SphereKit
         internal static void CheckSignedIn()
         {
             if (_accessTokenResponse == null)
-            {
                 throw new Exception("User is not signed in."); // TODO: Use AuthenticationException
-            }
         }
 
         private static async Task<Player> InternalGetPlayerInfo(string uid)
@@ -213,8 +203,6 @@ namespace SphereKit
                     CurrentPlayer = retrievedPlayer;
                     NotifyPlayerStateChangeListeners();
                 }
-
-                Debug.Log("Player info retrieved for " + retrievedPlayer.UserName);
 
                 return retrievedPlayer;
             }
@@ -241,9 +229,10 @@ namespace SphereKit
             var settingsResponse = await _httpClient.SendAsync(requestMessage);
             if (settingsResponse.IsSuccessStatusCode)
             {
-                AchievementsSettings = JsonConvert.DeserializeObject<AchievementsSettings>(await settingsResponse.Content
+                AchievementsSettings = JsonConvert.DeserializeObject<AchievementsSettings>(await settingsResponse
+                    .Content
                     .ReadAsStringAsync())!;
-                
+
                 Debug.Log("Settings retrieved and set.");
             }
             else
@@ -259,11 +248,12 @@ namespace SphereKit
             var databasesResponse = await _httpClient.SendAsync(requestMessage);
             if (databasesResponse.IsSuccessStatusCode)
             {
-                var databaseResponse = JsonConvert.DeserializeObject<ListDatabasesResponse>(await databasesResponse.Content
+                var databaseResponse = JsonConvert.DeserializeObject<ListDatabasesResponse>(await databasesResponse
+                    .Content
                     .ReadAsStringAsync());
                 var databaseId = databaseResponse.Databases.First();
                 DatabaseSettings = new DatabaseSettings(databaseId);
-                
+
                 Debug.Log("Database settings retrieved and set.");
             }
             else
@@ -349,10 +339,7 @@ namespace SphereKit
         {
             _playerStateChangeListeners.Add(onPlayerStateChange);
 
-            if (requireInitialState)
-            {
-                onPlayerStateChange(_authState);
-            }
+            if (requireInitialState) onPlayerStateChange(_authState);
         }
 
         public static void RemovePlayerStateChangeListener(Action<AuthState> onPlayerStateChange)
@@ -362,10 +349,7 @@ namespace SphereKit
 
         private static void NotifyPlayerStateChangeListeners()
         {
-            foreach (var listener in _playerStateChangeListeners)
-            {
-                listener(_authState);
-            }
+            foreach (var listener in _playerStateChangeListeners) listener(_authState);
         }
 
         public static async Task<long> GetPlayerCount()
@@ -401,36 +385,18 @@ namespace SphereKit
                 var fieldKey = keyValuePair.Key.Key;
                 var operationKey = keyValuePair.Value.OperationType;
                 var operationValue = keyValuePair.Value.Value;
-
-                string operationKeyStr = "";
-
-                switch (operationKey)
+                var operationKeyStr = operationKey switch
                 {
-                    case PlayerDataOperationType.Set:
-                        operationKeyStr = "$set";
-                        break;
-                    case PlayerDataOperationType.Inc:
-                        operationKeyStr = "$inc";
-                        break;
-                    case PlayerDataOperationType.Dec:
-                        operationKeyStr = "$dec";
-                        break;
-                    case PlayerDataOperationType.Min:
-                        operationKeyStr = "$min";
-                        break;
-                    case PlayerDataOperationType.Max:
-                        operationKeyStr = "$max";
-                        break;
-                    case PlayerDataOperationType.Mul:
-                        operationKeyStr = "$mul";
-                        break;
-                    case PlayerDataOperationType.Div:
-                        operationKeyStr = "$div";
-                        break;
-                    case PlayerDataOperationType.Unset:
-                        operationKeyStr = "$unset";
-                        break;
-                }
+                    PlayerDataOperationType.Set => "$set",
+                    PlayerDataOperationType.Inc => "$inc",
+                    PlayerDataOperationType.Dec => "$dec",
+                    PlayerDataOperationType.Min => "$min",
+                    PlayerDataOperationType.Max => "$max",
+                    PlayerDataOperationType.Mul => "$mul",
+                    PlayerDataOperationType.Div => "$div",
+                    PlayerDataOperationType.Unset => "$unset",
+                    _ => ""
+                };
 
                 if (operationKey != PlayerDataOperationType.Unset)
                 {
@@ -462,7 +428,6 @@ namespace SphereKit
                 "PATCH"); // PATCH method is not supported by UnityWebRequest (as of 6000)
             requestMessage.Content = new StringContent(JsonConvert.SerializeObject(updateRequestData),
                 System.Text.Encoding.UTF8, "application/json");
-            Debug.Log("Updating player with update json: " + await requestMessage.Content.ReadAsStringAsync());
             var playerUpdateResponse = await _httpClient.SendAsync(requestMessage);
 
             if (playerUpdateResponse.IsSuccessStatusCode)
@@ -483,17 +448,14 @@ namespace SphereKit
             CheckSignedIn();
 
             string? currentStartAfter = null;
-            bool reachedEnd = false;
+            var reachedEnd = false;
 
             return new AchievementsCursor(async () =>
             {
                 if (reachedEnd) return Array.Empty<Achievement>();
 
                 var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
-                if (achievements.Length < pageSize || achievements.Length == 0)
-                {
-                    reachedEnd = true;
-                }
+                if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
 
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
@@ -509,22 +471,13 @@ namespace SphereKit
             var baseUrl = $"{ServerUrl}/achievements";
             var parameters = new Dictionary<string, string>
             {
-                { "limit", limit.ToString() },
+                { "limit", limit.ToString() }
             };
-            if (!string.IsNullOrEmpty(query))
-            {
-                parameters["query"] = query;
-            }
+            if (!string.IsNullOrEmpty(query)) parameters["query"] = query;
 
-            if (!string.IsNullOrEmpty(startAfter))
-            {
-                parameters["startAfter"] = startAfter;
-            }
+            if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
 
-            if (queryByGroup)
-            {
-                parameters["queryByGroup"] = "true";
-            }
+            if (queryByGroup) parameters["queryByGroup"] = "true";
 
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
@@ -573,17 +526,14 @@ namespace SphereKit
             CheckSignedIn();
 
             string? currentStartAfter = null;
-            bool reachedEnd = false;
+            var reachedEnd = false;
 
             return new AchievementGroupsCursor(async () =>
             {
                 if (reachedEnd) return Array.Empty<AchievementGroup>();
 
                 var achievementGroups = await GetAchievementGroupsPage(query, pageSize, currentStartAfter);
-                if (achievementGroups.Length < pageSize || achievementGroups.Length == 0)
-                {
-                    reachedEnd = true;
-                }
+                if (achievementGroups.Length < pageSize || achievementGroups.Length == 0) reachedEnd = true;
 
                 currentStartAfter = achievementGroups.LastOrDefault()?.Id;
                 return achievementGroups;
@@ -599,17 +549,11 @@ namespace SphereKit
             var baseUrl = $"{ServerUrl}/achievements:groups";
             var parameters = new Dictionary<string, string>
             {
-                { "limit", limit.ToString() },
+                { "limit", limit.ToString() }
             };
-            if (!string.IsNullOrEmpty(query))
-            {
-                parameters["query"] = query;
-            }
+            if (!string.IsNullOrEmpty(query)) parameters["query"] = query;
 
-            if (!string.IsNullOrEmpty(startAfter))
-            {
-                parameters["startAfter"] = startAfter;
-            }
+            if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
 
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
@@ -661,10 +605,7 @@ namespace SphereKit
                 $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var addAchievementResponse = await _httpClient.SendAsync(requestMessage);
-            if (!addAchievementResponse.IsSuccessStatusCode)
-            {
-                await HandleErrorResponse(addAchievementResponse);
-            }
+            if (!addAchievementResponse.IsSuccessStatusCode) await HandleErrorResponse(addAchievementResponse);
         }
 
         public static async Task RemoveAchievement(string achievementId)
@@ -676,10 +617,7 @@ namespace SphereKit
                 $"{ServerUrl}/auth/players/{_uid}/achievements/{achievementId}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var removeAchievementResponse = await _httpClient.SendAsync(requestMessage);
-            if (!removeAchievementResponse.IsSuccessStatusCode)
-            {
-                await HandleErrorResponse(removeAchievementResponse);
-            }
+            if (!removeAchievementResponse.IsSuccessStatusCode) await HandleErrorResponse(removeAchievementResponse);
         }
 
         internal static async Task HandleErrorResponse(HttpResponseMessage response,
@@ -723,10 +661,7 @@ namespace SphereKit
                 // Ignore
             }
 
-            if (error == null)
-            {
-                Debug.LogWarning("Unknown error occured: " + await response.Content.ReadAsStringAsync());
-            }
+            if (error == null) Debug.LogWarning("Unknown error occured: " + await response.Content.ReadAsStringAsync());
 
             error ??= new Exception("An unknown error occurred while using Sphere Kit.");
 
@@ -743,10 +678,7 @@ namespace SphereKit
                 using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/oauth/signout");
                 requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
                 var playerResponse = await _httpClient.SendAsync(requestMessage);
-                if (!playerResponse.IsSuccessStatusCode)
-                {
-                    await HandleErrorResponse(playerResponse);
-                }
+                if (!playerResponse.IsSuccessStatusCode) await HandleErrorResponse(playerResponse);
             }
 
             // Dispose variables
@@ -759,6 +691,7 @@ namespace SphereKit
                 await _refreshAccessTokenTimer.DisposeAsync();
                 _refreshAccessTokenTimer = null;
             }
+
             NotifyPlayerStateChangeListeners();
             Debug.Log("Variables disposed.");
 
