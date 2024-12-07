@@ -4,13 +4,13 @@ using Cdm.Authentication.OAuth2;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using SphereKit.Utils;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("projectquik.spherekit.database")]
@@ -83,6 +83,13 @@ namespace SphereKit
 #else
             _redirectUri = "http://localhost:8080/spherekit/oauth";
 #endif
+
+            // Check internet connectivity
+            var uri = new Uri(_serverUrl);
+            var ping = new System.Net.NetworkInformation.Ping();
+            var pingReply = ping.Send(uri.Host);
+            if (pingReply?.Status != IPStatus.Success)
+                throw new Exception("Could not connect to Sphere Kit. Please check your network settings.");
 
             // Initialise authentication session
             InitialiseAuthenticationSession();
@@ -623,26 +630,33 @@ namespace SphereKit
         internal static async Task HandleErrorResponse(HttpResponseMessage response,
             bool skipResetAuthTokenOnError = false)
         {
+            var errorString = await response.Content.ReadAsStringAsync();
+            HandleErrorString(errorString, skipResetAuthTokenOnError);
+        }
+
+        internal static void HandleErrorString(string errorString,
+            bool skipResetAuthTokenOnError = false)
+        {
             Exception? error = null;
             try
             {
                 var errorData =
-                    JsonConvert.DeserializeObject<ErrorResponse>(await response.Content.ReadAsStringAsync());
-                switch (response.StatusCode)
+                    JsonConvert.DeserializeObject<ErrorResponse>(errorString);
+                switch (errorData.StatusCode)
                 {
-                    case HttpStatusCode.InternalServerError:
+                    case 500:
                         error = new InternalServerException(errorData.ErrorMessage);
                         break;
-                    case HttpStatusCode.TooManyRequests:
+                    case 429:
                         error = new RateLimitException(errorData.ErrorMessage);
                         break;
-                    case HttpStatusCode.NotFound:
+                    case 404:
                         error = new NotFoundException(errorData.ErrorCode, errorData.ErrorMessage);
                         break;
-                    case HttpStatusCode.Forbidden:
+                    case 403:
                         error = new ForbiddenException(errorData.ErrorCode, errorData.ErrorMessage);
                         break;
-                    case HttpStatusCode.Unauthorized:
+                    case 401:
                         error = new AuthenticationException(errorData.ErrorCode, errorData.ErrorMessage);
                         if (!skipResetAuthTokenOnError)
                         {
@@ -651,7 +665,7 @@ namespace SphereKit
                         }
 
                         break;
-                    case HttpStatusCode.BadRequest:
+                    case 400:
                         error = new BadRequestException(errorData.ErrorCode, errorData.ErrorMessage);
                         break;
                 }
@@ -661,9 +675,7 @@ namespace SphereKit
                 // Ignore
             }
 
-            if (error == null) Debug.LogWarning("Unknown error occured: " + await response.Content.ReadAsStringAsync());
-
-            error ??= new Exception("An unknown error occurred while using Sphere Kit.");
+            error ??= new Exception($"An unknown error occurred while using Sphere Kit: {errorString}");
 
             throw error;
         }

@@ -14,13 +14,12 @@ namespace SphereKit
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Initialize()
+        private static void Initialize()
         {
             _mainThreadContext = SynchronizationContext.Current;
             if (_mainThreadContext == null)
-            {
-                Debug.LogError("MainThreadDispatcher: SynchronizationContext.Current is null. Ensure this is called from the main thread.");
-            }
+                Debug.LogError(
+                    "MainThreadDispatcher: SynchronizationContext.Current is null. Ensure this is called from the main thread.");
         }
 
         internal static void Execute(Action action)
