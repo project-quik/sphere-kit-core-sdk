@@ -19,12 +19,10 @@ namespace SphereKit
             return new PlayerDataOperation(PlayerDataOperationType.Set, value);
         }
 
-        static void CheckNumberValue(object value)
+        private static void CheckNumberValue(object value)
         {
             if (value is not long && value is not int && value is not float && value is not double)
-            {
                 throw new ArgumentException("Value must be a number (long/int/float/double).");
-            }
         }
 
         public static PlayerDataOperation Inc(object value)
@@ -65,6 +63,8 @@ namespace SphereKit
         public static PlayerDataOperation Div(object value)
         {
             CheckNumberValue(value);
+            if ((int)value == 0)
+                throw new ArgumentException("Cannot divide by zero.");
 
             return new PlayerDataOperation(PlayerDataOperationType.Div, value);
         }

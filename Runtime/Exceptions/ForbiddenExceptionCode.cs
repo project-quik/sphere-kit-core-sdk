@@ -6,7 +6,7 @@ namespace SphereKit
     public enum ForbiddenExceptionCode
     {
         InsufficientScope = 1,
-        NoAccess = 2,
+        NoAccess = 2
     }
 
     internal static class ForbiddenExceptionCodeExtensions
@@ -17,7 +17,8 @@ namespace SphereKit
             {
                 "auth/insufficient-scope" => ForbiddenExceptionCode.InsufficientScope,
                 "auth/forbidden" => ForbiddenExceptionCode.NoAccess,
-                _ => throw new Exception($"Unknown exception code: {code}"),
+                "databases/forbidden" => ForbiddenExceptionCode.NoAccess,
+                _ => throw new Exception($"Unknown exception code: {code}")
             };
         }
     }
