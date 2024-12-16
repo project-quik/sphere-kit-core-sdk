@@ -7,39 +7,57 @@ using UnityEngine.Scripting;
 #nullable enable
 namespace SphereKit
 {
+    /// <summary>
+    /// Represents a short achievement group.
+    /// Use <see cref="GetDetailedAchievementGroup"/> to get a detailed achievement group with group description.
+    /// </summary>
     [Preserve]
     [DataContract]
     public class AchievementGroup
     {
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "name")]
+        /// <summary>
+        /// The ID of the achievement group.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "name")]
         public readonly string Id = "";
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "displayName")]
+        /// <summary>
+        /// The display name of the achievement group.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "displayName")]
         public readonly string DisplayName = "";
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "shortDescription")]
+        /// <summary>
+        /// The short description of the achievement group.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "shortDescription")]
         public readonly string ShortDescription = "";
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "progress")]
+        /// <summary>
+        /// The story progress that this achievement group represents. Only available for story-based games.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "progress")]
         public readonly float Progress;
 
-        static readonly HttpClient _httpClient = new();
+        private static readonly HttpClient _httpClient = new();
 
+        /// <summary>
+        /// Gets a detailed achievement group with group description.
+        /// </summary>
         public async Task<DetailedAchievementGroup> GetDetailedAchievementGroup()
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements:groups/{Id}");
+            using var requestMessage =
+                new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements:groups/{Id}");
             requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
             var detailedAchievementGroupResponse = await _httpClient.SendAsync(requestMessage);
             if (detailedAchievementGroupResponse.IsSuccessStatusCode)
             {
-                var detailedAchievementGroup = JsonConvert.DeserializeObject<DetailedAchievementGroup>(await detailedAchievementGroupResponse.Content.ReadAsStringAsync())!;
+                var detailedAchievementGroup =
+                    JsonConvert.DeserializeObject<DetailedAchievementGroup>(await detailedAchievementGroupResponse
+                        .Content.ReadAsStringAsync())!;
                 return detailedAchievementGroup;
             }
             else

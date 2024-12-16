@@ -9,9 +9,12 @@ using UnityEngine.Scripting;
 #nullable enable
 namespace SphereKit
 {
+    /// <summary>
+    /// Represents an achievement achieved by a player.
+    /// </summary>
     [Preserve]
     [DataContract]
-    public class PlayerAchievement: Achievement
+    public class PlayerAchievement : Achievement
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "timestamp")]
@@ -19,12 +22,23 @@ namespace SphereKit
         {
             set => AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
         }
+
+        /// <summary>
+        /// The date and time the achievement was achieved.
+        /// </summary>
         public DateTime AchievedDate { get; private set; }
 
+        /// <summary>
+        /// The player who achieved the achievement.
+        /// </summary>
         internal Player Player { get; set; } = new();
 
-        static readonly HttpClient _httpClient = new();
+        private static readonly HttpClient _httpClient = new();
 
+        /// <summary>
+        /// Returns the detailed achievement with achievement description.
+        /// </summary>
+        /// <returns>The detailed player achievement.</returns>
         public new async Task<DetailedPlayerAchievement> GetDetailedAchievement()
         {
             CoreServices.CheckInitialized();
@@ -32,12 +46,15 @@ namespace SphereKit
 
             Assert.IsNotNull(Player, "Player is not set for this player achievement.");
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/auth/players/{Player.Uid}/achievements/{Id}");
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get,
+                $"{CoreServices.ServerUrl}/auth/players/{Player.Uid}/achievements/{Id}");
             requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
             var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);
             if (detailedAchievementResponse.IsSuccessStatusCode)
             {
-                var detailedAchievement = JsonConvert.DeserializeObject<DetailedPlayerAchievement>(await detailedAchievementResponse.Content.ReadAsStringAsync())!;
+                var detailedAchievement =
+                    JsonConvert.DeserializeObject<DetailedPlayerAchievement>(await detailedAchievementResponse.Content
+                        .ReadAsStringAsync())!;
                 return detailedAchievement;
             }
             else

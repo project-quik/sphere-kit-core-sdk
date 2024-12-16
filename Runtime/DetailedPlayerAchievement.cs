@@ -5,6 +5,9 @@ using UnityEngine.Scripting;
 #nullable enable
 namespace SphereKit
 {
+    /// <summary>
+    /// Represents a detailed player achievement.
+    /// </summary>
     [Preserve]
     [DataContract]
     public class DetailedPlayerAchievement : DetailedAchievement
@@ -15,6 +18,10 @@ namespace SphereKit
         {
             set => AchievedDate = DateTimeOffset.FromUnixTimeMilliseconds(value).DateTime;
         }
+
+        /// <summary>
+        /// The date and time the achievement was achieved.
+        /// </summary>
         public DateTime AchievedDate { get; private set; }
     }
 }

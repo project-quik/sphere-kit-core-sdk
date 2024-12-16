@@ -4,24 +4,35 @@ using UnityEngine.Scripting;
 #nullable enable
 namespace SphereKit
 {
+    /// <summary>
+    /// The settings for the Achievements module.
+    /// </summary>
     [Preserve]
     [DataContract]
     public class AchievementsSettings
     {
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "numAchievements")]
+        /// <summary>
+        /// The total number of achievements in the game.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "numAchievements")]
         public readonly int AchievementCount;
 
-        [Preserve]
-        [DataMember(Name = "scoreLogoURL")]
+        /// <summary>
+        /// The URL to the icon for the score unit.
+        /// </summary>
+        [Preserve] [DataMember(Name = "scoreLogoURL")]
         public readonly string? ScoreLogoUrl;
 
-        [Preserve]
-        [DataMember(Name = "scoreText")]
+        /// <summary>
+        /// The name of the score unit (e.g. XP, points).
+        /// </summary>
+        [Preserve] [DataMember(Name = "scoreText")]
         public readonly string? ScoreUnit;
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "isSkillBased")]
+        /// <summary>
+        /// Whether the game uses skill-based achievements (true) or story-based achievements (false).
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "isSkillBased")]
         public readonly bool IsSkillBased = true;
     }
 }

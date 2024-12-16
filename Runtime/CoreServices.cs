@@ -19,12 +19,39 @@ namespace SphereKit
 {
     public static class CoreServices
     {
+        /// <summary>
+        /// Whether Sphere Kit has been initialised.
+        /// </summary>
         public static bool HasInitialized { get; private set; }
+
+        /// <summary>
+        /// The signed in player information (present even if authentication has expired). Null if no player has been signed in.
+        /// </summary>
         public static Player? CurrentPlayer { get; private set; }
+
+        /// <summary>
+        /// The settings for the Achievements module.
+        /// </summary>
         public static AchievementsSettings? AchievementsSettings { get; private set; }
+
+        /// <summary>
+        /// The settings for the Database module.
+        /// </summary>
         public static DatabaseSettings DatabaseSettings { get; private set; }
+
+        /// <summary>
+        /// The access token for the current player. Null if no player is currently signed in.
+        /// </summary>
         internal static string? AccessToken => _accessTokenResponse?.accessToken;
+
+        /// <summary>
+        /// The client ID for the project.
+        /// </summary>
         internal static string ProjectId => _projectId;
+
+        /// <summary>
+        /// The server URL for the project.
+        /// </summary>
         internal static string ServerUrl => _serverUrl;
 
         private static string _clientId = "";
@@ -47,22 +74,27 @@ namespace SphereKit
         private static AuthState _authState => new(_accessTokenResponse != null, CurrentPlayer);
         private static string? _uid => _accessTokenResponse?.user.uid;
 
-        private const string accessTokenResponseKey = "accessTokenResponse";
+        private const string AccessTokenResponseKey = "accessTokenResponse";
 
+        /// <summary>
+        /// Initialises Sphere Kit. This method must be called before any other methods in the Sphere Kit SDK.
+        /// </summary>
+        /// <exception cref="MissingFieldException">Some required settings fields were not configured.</exception>
+        /// <exception cref="PingException">Could not connect to Sphere Kit servers.</exception>
         public static async Task Initialize()
         {
             // Load configuration
             var config = ProjectConfig.GetOrCreateConfig();
             if (config == null || config.clientID == "")
-                throw new Exception(
+                throw new MissingFieldException(
                     "The Client ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
 
             if (config == null || config.projectID == "")
-                throw new Exception(
+                throw new MissingFieldException(
                     "The Project ID has not been configured yet. Please configure Sphere Kit in Project Settings.");
 
             if (config.serverURL == "")
-                throw new Exception(
+                throw new MissingFieldException(
                     "The Server URL has not been configured yet. Please configure Sphere Kit in Project Settings.");
 
             if (config.deepLinkScheme == "")
@@ -89,7 +121,7 @@ namespace SphereKit
             var ping = new System.Net.NetworkInformation.Ping();
             var pingReply = ping.Send(uri.Host);
             if (pingReply?.Status != IPStatus.Success)
-                throw new Exception("Could not connect to Sphere Kit. Please check your network settings.");
+                throw new PingException("Could not connect to Sphere Kit. Please check your network settings.");
 
             // Initialise authentication session
             InitialiseAuthenticationSession();
@@ -98,13 +130,13 @@ namespace SphereKit
             await GetDatabaseSettings();
 
             // Load access token response from player prefs
-            if (PlayerPrefs.HasKey(accessTokenResponseKey))
+            if (PlayerPrefs.HasKey(AccessTokenResponseKey))
             {
                 try
                 {
                     _accessTokenResponse =
                         JsonConvert.DeserializeObject<AccessTokenResponse>(
-                            PlayerPrefs.GetString(accessTokenResponseKey));
+                            PlayerPrefs.GetString(AccessTokenResponseKey));
                     _authenticationSession!.SetAuthenticationInfo(_accessTokenResponse);
                     Debug.Log("Access token loaded from player prefs.");
                 }
@@ -135,6 +167,9 @@ namespace SphereKit
             Debug.Log($"Sphere Kit has been initialized.");
         }
 
+        /// <summary>
+        /// Sets up the authentication session.
+        /// </summary>
         private static void InitialiseAuthenticationSession()
         {
             // ReSharper disable once AccessToStaticMemberViaDerivedType
@@ -159,13 +194,21 @@ namespace SphereKit
             _authenticationSession = new AuthenticationSession(auth, crossPlatformBrowser);
         }
 
+        /// <summary>
+        /// Checks if Sphere Kit has been initialised. Throws an exception if it has not been initialised.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Sphere Kit has not been initialised.</exception>
         internal static void CheckInitialized()
         {
             if (!HasInitialized)
-                throw new Exception(
+                throw new InvalidOperationException(
                     "Sphere Kit has not been initialized. Please call SphereKit.Core.Initialize() before calling any other methods.");
         }
 
+        /// <summary>
+        /// Signs in the player to the game using their Sphere account.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Authentication will not work on iOS and Android because the Deep Link Scheme has not been configured.</exception>
         public static async Task SignInWithSphere()
         {
             CheckInitialized();
@@ -174,26 +217,41 @@ namespace SphereKit
 #if UNITY_IOS || UNITY_ANDROID
             if (string.IsNullOrEmpty(_deepLinkScheme))
             {
-                throw new Exception("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
+                throw new InvalidOperationException("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
             }
 #endif
 
             // Start OAuth2 flow
             _accessTokenResponse = await _authenticationSession!.AuthenticateAsync();
+
+            // Get player info and achievements settings
             await InternalGetPlayerInfo(_uid!);
             await GetAchievementsSettings();
             StoreAccessTokenResponse();
 
             Debug.Log("Access token received from server.");
+
+            // Schedule access token refresh
             ScheduleAccessTokenRefresh();
         }
 
+        /// <summary>
+        /// Checks if the user is signed in. Throws an exception if the user is not signed in.
+        /// </summary>
+        /// <exception cref="AuthenticationException">User is not signed in.</exception>
         internal static void CheckSignedIn()
         {
             if (_accessTokenResponse == null)
-                throw new Exception("User is not signed in."); // TODO: Use AuthenticationException
+                throw new AuthenticationException("auth/not-signed-in", "User is not signed in.");
         }
 
+        /// <summary>
+        /// Internal use only. Gets the player information for the given UID.
+        /// If the UID matches the current signed in UID, the signed-in player information is also updated.
+        /// Unlike the public <see cref="GetPlayerInfo"/>, this method does not check if Sphere Kit has been initialised.
+        /// </summary>
+        /// <param name="uid">The UID of the player to retrieve.</param>
+        /// <returns>The player information for the UID specified.</returns>
         private static async Task<Player> InternalGetPlayerInfo(string uid)
         {
             CheckSignedIn();
@@ -220,6 +278,11 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets the player information for the given UID.
+        /// </summary>
+        /// <param name="uid">The UID of the player to retrieve.</param>
+        /// <returns>The player information for the UID specified.</returns>
         public static async Task<Player> GetPlayerInfo(string uid)
         {
             CheckInitialized();
@@ -227,6 +290,9 @@ namespace SphereKit
             return await InternalGetPlayerInfo(uid);
         }
 
+        /// <summary>
+        /// Gets the settings for the Achievements module and sets the <see cref="AchievementsSettings"/> property.
+        /// </summary>
         private static async Task GetAchievementsSettings()
         {
             CheckSignedIn();
@@ -240,7 +306,7 @@ namespace SphereKit
                     .Content
                     .ReadAsStringAsync())!;
 
-                Debug.Log("Settings retrieved and set.");
+                Debug.Log("Achievements settings retrieved and set.");
             }
             else
             {
@@ -248,6 +314,9 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets the settings for the Database module and sets the <see cref="DatabaseSettings"/> property.
+        /// </summary>
         private static async Task GetDatabaseSettings()
         {
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/databases:list");
@@ -269,6 +338,9 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Refreshes the access token using the refresh token, and schedules the next refresh if successful.
+        /// </summary>
         private static async Task RefreshAccessToken()
         {
             if (_accessTokenResponse == null)
@@ -290,12 +362,15 @@ namespace SphereKit
             try
             {
                 _accessTokenResponse = await _authenticationSession!.RefreshTokenAsync();
+
+                // Get player info and achievements settings
                 await InternalGetPlayerInfo(_uid!);
                 await GetAchievementsSettings();
                 StoreAccessTokenResponse();
 
                 Debug.Log("Access token refreshed.");
 
+                // Schedule next refresh
                 ScheduleAccessTokenRefresh();
             }
             catch (AuthenticationException)
@@ -306,6 +381,9 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Schedules the next access token refresh.
+        /// </summary>
         private static void ScheduleAccessTokenRefresh()
         {
             if (_accessTokenResponse == null)
@@ -325,6 +403,9 @@ namespace SphereKit
             _refreshAccessTokenTimer.Change(_accessTokenExpiringIn, Timeout.Infinite);
         }
 
+        /// <summary>
+        /// Stores the access token response in player prefs.
+        /// </summary>
         private static void StoreAccessTokenResponse()
         {
             if (_accessTokenResponse == null)
@@ -336,11 +417,16 @@ namespace SphereKit
             var accessTokenResponseJson = JsonConvert.SerializeObject(_accessTokenResponse);
             MainThreadDispatcher.Execute(() =>
             {
-                PlayerPrefs.SetString(accessTokenResponseKey, accessTokenResponseJson);
+                PlayerPrefs.SetString(AccessTokenResponseKey, accessTokenResponseJson);
                 Debug.Log("Stored access token in player prefs");
             });
         }
 
+        /// <summary>
+        /// Adds a listener for player authentication and information state changes.
+        /// </summary>
+        /// <param name="onPlayerStateChange">A callback for when the player state changes.</param>
+        /// <param name="requireInitialState">Whether a call of the <see cref="onPlayerStateChange"/> function immediately after the listener is added is required.</param>
         public static void AddPlayerStateChangeListener(Action<AuthState> onPlayerStateChange,
             bool requireInitialState = false)
         {
@@ -349,16 +435,27 @@ namespace SphereKit
             if (requireInitialState) onPlayerStateChange(_authState);
         }
 
+        /// <summary>
+        /// Removes a listener for player authentication and information state changes.
+        /// </summary>
+        /// <param name="onPlayerStateChange">The callback to be removed.</param>
         public static void RemovePlayerStateChangeListener(Action<AuthState> onPlayerStateChange)
         {
             _playerStateChangeListeners.Remove(onPlayerStateChange);
         }
 
+        /// <summary>
+        /// Notifies all player state change listeners of a change in player state.
+        /// </summary>
         private static void NotifyPlayerStateChangeListeners()
         {
             foreach (var listener in _playerStateChangeListeners) listener(_authState);
         }
 
+        /// <summary>
+        /// Gets the total number of players in the game.
+        /// </summary>
+        /// <returns>The total number of players in the game.</returns>
         public static async Task<long> GetPlayerCount()
         {
             CheckInitialized();
@@ -381,53 +478,17 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Updates the signed-in player's attributes and metadata.
+        /// </summary>
+        /// <param name="update">The update specification.</param>
+        /// <returns>The updated player information.</returns>
         public static async Task<Player> UpdatePlayerInfo(Dictionary<PlayerDataField, PlayerDataOperation> update)
         {
             CheckInitialized();
             CheckSignedIn();
 
-            var updateRequestData = new Dictionary<string, object>();
-            foreach (var keyValuePair in update)
-            {
-                var fieldKey = keyValuePair.Key.Key;
-                var operationKey = keyValuePair.Value.OperationType;
-                var operationValue = keyValuePair.Value.Value;
-                var operationKeyStr = operationKey switch
-                {
-                    PlayerDataOperationType.Set => "$set",
-                    PlayerDataOperationType.Inc => "$inc",
-                    PlayerDataOperationType.Dec => "$dec",
-                    PlayerDataOperationType.Min => "$min",
-                    PlayerDataOperationType.Max => "$max",
-                    PlayerDataOperationType.Mul => "$mul",
-                    PlayerDataOperationType.Div => "$div",
-                    PlayerDataOperationType.Unset => "$unset",
-                    _ => ""
-                };
-
-                if (operationKey != PlayerDataOperationType.Unset)
-                {
-                    if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
-                    {
-                        operationData = new Dictionary<string, object>();
-                        updateRequestData[operationKeyStr] = operationData;
-                    }
-
-                    var operationDataDict = (Dictionary<string, object>)operationData;
-                    operationDataDict[fieldKey] = operationValue!;
-                }
-                else
-                {
-                    if (!updateRequestData.TryGetValue(operationKeyStr, out var operationData))
-                    {
-                        operationData = new List<object>();
-                        updateRequestData[operationKeyStr] = operationData;
-                    }
-
-                    var operationDataList = (List<object>)operationData;
-                    operationDataList.Add(fieldKey);
-                }
-            }
+            var updateRequestData = PlayerDataOperation.ConvertUpdateToRequestData(update);
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{ServerUrl}/auth/players/{_uid}");
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
@@ -448,6 +509,14 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets achievements available in the game.
+        /// If no query is specified, skill-based achievements will be sorted by alphabetical order of display name, and story-based achievements will be sorted by story progress, then group ID, then group relative order.
+        /// </summary>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="pageSize">The number of achievements to retrieve at a time.</param>
+        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <returns>A cursor where the next <see cref="pageSize"/> achievements can be retrieved.</returns>
         public static AchievementsCursor GetAllAchievements(string? query = null, int pageSize = 30,
             bool queryByGroup = false)
         {
@@ -469,6 +538,15 @@ namespace SphereKit
             });
         }
 
+        /// <summary>
+        /// Gets a list of achievements. Used by the cursor to get the next page of achievements.
+        /// If no query is specified, skill-based achievements will be sorted by alphabetical order of display name, and story-based achievements will be sorted by story progress, then group ID, then group relative order.
+        /// </summary>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="limit">The number of achievements to retrieve at a time.</param>
+        /// <param name="startAfter">The achievement ID to start retrieving achievements after.</param>
+        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <returns>A list of achievements matching the parameters.</returns>
         private static async Task<Achievement[]> GetAchievementsPage(string? query, int limit, string? startAfter,
             bool queryByGroup)
         {
@@ -505,6 +583,10 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets an array of all achievement IDs in the game.
+        /// </summary>
+        /// <returns>An array of all achievement IDs.</returns>
         public static async Task<string[]> ListAllAchievements()
         {
             CheckInitialized();
@@ -527,6 +609,13 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets achievement groups available in the game.
+        /// If no query is specified, achievement groups will be sorted by story progress, then group ID.
+        /// </summary>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
+        /// <param name="pageSize">The number of achievement groups to retrieve at a time.</param>
+        /// <returns>A cursor where the next <see cref="pageSize"/> achievement groups can be retrieved.</returns>
         public static AchievementGroupsCursor GetAchievementGroups(string? query = null, int pageSize = 30)
         {
             CheckInitialized();
@@ -547,6 +636,14 @@ namespace SphereKit
             });
         }
 
+        /// <summary>
+        /// Gets a list of achievement groups. Used by the cursor to get the next page of achievement groups.
+        /// If no query is specified, achievement groups will be sorted by story progress, then group ID.
+        /// </summary>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
+        /// <param name="limit">The number of achievement groups to retrieve at a time.</param>
+        /// <param name="startAfter">The achievement group ID to start retrieving achievement groups after.</param>
+        /// <returns>A list of achievement groups matching the parameters.</returns>
         private static async Task<AchievementGroup[]> GetAchievementGroupsPage(string? query, int limit,
             string? startAfter)
         {
@@ -581,6 +678,10 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Gets an array of all achievement group IDs and their story progress in the game.
+        /// </summary>
+        /// <returns>An array of all achievement group IDs and their story progress.</returns>
         public static async Task<ListedAchievementGroup[]> ListAchievementGroups()
         {
             CheckInitialized();
@@ -603,6 +704,10 @@ namespace SphereKit
             }
         }
 
+        /// <summary>
+        /// Adds an achievement to the signed-in player's achievements.
+        /// </summary>
+        /// <param name="achievementId">The ID of the achievement to add.</param>
         public static async Task AddAchievement(string achievementId)
         {
             CheckInitialized();
@@ -615,6 +720,10 @@ namespace SphereKit
             if (!addAchievementResponse.IsSuccessStatusCode) await HandleErrorResponse(addAchievementResponse);
         }
 
+        /// <summary>
+        /// Removes an achievement from the signed-in player's achievements.
+        /// </summary>
+        /// <param name="achievementId">The ID of the achievement to remove.</param>
         public static async Task RemoveAchievement(string achievementId)
         {
             CheckInitialized();
@@ -627,6 +736,11 @@ namespace SphereKit
             if (!removeAchievementResponse.IsSuccessStatusCode) await HandleErrorResponse(removeAchievementResponse);
         }
 
+        /// <summary>
+        /// Handles an error HTTP response from the server. Will throw an exception based on the error code.
+        /// </summary>
+        /// <param name="response">The HTTP response.</param>
+        /// <param name="skipResetAuthTokenOnError">Whether to not reset the authentication state if there is a 401 error.</param>
         internal static async Task HandleErrorResponse(HttpResponseMessage response,
             bool skipResetAuthTokenOnError = false)
         {
@@ -634,6 +748,11 @@ namespace SphereKit
             HandleErrorString(errorString, skipResetAuthTokenOnError);
         }
 
+        /// <summary>
+        /// Handles an error JSON string from the server. Will throw an exception based on the error code.
+        /// </summary>
+        /// <param name="errorString">The error JSON string.</param>
+        /// <param name="skipResetAuthTokenOnError">Whether to not reset the authentication state if there is a 401 error.</param>
         internal static void HandleErrorString(string errorString,
             bool skipResetAuthTokenOnError = false)
         {
@@ -680,6 +799,9 @@ namespace SphereKit
             throw error;
         }
 
+        /// <summary>
+        /// Signs out of the current player account.
+        /// </summary>
         public static async Task SignOut()
         {
             CheckInitialized();
@@ -695,6 +817,7 @@ namespace SphereKit
 
             // Dispose variables
             CurrentPlayer = null;
+            AchievementsSettings = null;
             _authenticationSession?.Dispose();
             _authenticationSession = null;
             _accessTokenResponse = null;
@@ -710,7 +833,7 @@ namespace SphereKit
             // Clear player prefs
             MainThreadDispatcher.Execute(() =>
             {
-                PlayerPrefs.DeleteKey(accessTokenResponseKey);
+                PlayerPrefs.DeleteKey(AccessTokenResponseKey);
                 Debug.Log("Access token removed from player prefs.");
             });
 
@@ -719,6 +842,9 @@ namespace SphereKit
             Debug.Log("Signed out.");
         }
 
+        /// <summary>
+        /// Disposes of Sphere Kit, signs out the player and clears all listeners.
+        /// </summary>
         public static async Task Dispose()
         {
             await SignOut();

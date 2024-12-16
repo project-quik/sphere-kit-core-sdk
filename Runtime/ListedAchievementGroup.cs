@@ -4,16 +4,23 @@ using UnityEngine.Scripting;
 #nullable enable
 namespace SphereKit
 {
+    /// <summary>
+    /// Represents a summary of the achievement group.
+    /// </summary>
     [Preserve]
     [DataContract]
     public class ListedAchievementGroup
     {
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "name")]
+        /// <summary>
+        /// The ID of the achievement group.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "name")]
         public readonly string Id = "";
 
-        [Preserve]
-        [DataMember(IsRequired = true, Name = "progress")]
+        /// <summary>
+        /// The story progress of the achievement group.
+        /// </summary>
+        [Preserve] [DataMember(IsRequired = true, Name = "progress")]
         public readonly float Progress;
     }
 }

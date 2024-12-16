@@ -17,12 +17,10 @@ namespace SphereKit
         {
             Key = key;
         }
+
         public override bool Equals(object? obj)
         {
-            if (obj is PlayerDataField other)
-            {
-                return Key == other.Key;
-            }
+            if (obj is PlayerDataField other) return Key == other.Key;
             return false;
         }
 
