@@ -38,7 +38,7 @@ namespace SphereKit
         public readonly string DisplayName = "";
 
         /// <summary>
-        /// The profile picture URL of the player. Expires in 15 min from time of generation.
+        /// The profile picture URL of the player. Expires in 7 days from time of generation.
         /// </summary>
         [Preserve] [DataMember(Name = "profilepicURL")]
         public readonly string? ProfilePicUrl;
@@ -121,10 +121,12 @@ namespace SphereKit
         /// Gets achievements achieved by the player.
         /// If no query is specified, achievements will be ordered by the date and time they were achieved.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
         /// <param name="pageSize">The number of achievements to retrieve at a time.</param>
+        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
         /// <returns>A cursor where the next <see cref="pageSize"/> achievements can be retrieved.</returns>
-        public PlayerAchievementsCursor GetPlayerAchievements(string? query = null, int pageSize = 30)
+        public PlayerAchievementsCursor GetPlayerAchievements(string? query = null, int pageSize = 30,
+            bool queryByGroup = false)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
@@ -136,7 +138,7 @@ namespace SphereKit
             {
                 if (reachedEnd) return Array.Empty<PlayerAchievement>();
 
-                var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter);
+                var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
                 if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
@@ -147,11 +149,13 @@ namespace SphereKit
         /// Gets a list of achievements achieved by the player. Used by the cursor to get the next page of achievements.
         /// If no query is specified, achievements will be ordered by the date and time they were achieved.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
         /// <param name="limit">The number of achievements to retrieve at a time.</param>
         /// <param name="startAfter">The achievement ID to start retrieving achievements after.</param>
+        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
         /// <returns>A list of achievements matching the parameters.</returns>
-        private async Task<PlayerAchievement[]> GetPlayerAchievementsPage(string? query, int limit, string? startAfter)
+        private async Task<PlayerAchievement[]> GetPlayerAchievementsPage(string? query, int limit, string? startAfter,
+            bool queryByGroup)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
@@ -163,6 +167,7 @@ namespace SphereKit
             };
             if (!string.IsNullOrEmpty(query)) parameters["query"] = query;
             if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
+            if (queryByGroup) parameters["queryByGroup"] = "true";
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);

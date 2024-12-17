@@ -28,7 +28,7 @@ namespace SphereKit
         public readonly string DisplayName = "";
 
         /// <summary>
-        /// The URL to the cover image of the achievement. Expires in 15 min from time of response.
+        /// The URL to the cover image of the achievement. Expires in 7 days from time of response.
         /// </summary>
         [Preserve] [DataMember(Name = "coverURL")]
         public readonly string? CoverUrl;
