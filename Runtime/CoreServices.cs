@@ -116,13 +116,6 @@ namespace SphereKit
             _redirectUri = "http://localhost:8080/spherekit/oauth";
 #endif
 
-            // Check internet connectivity
-            var uri = new Uri(_serverUrl);
-            var ping = new System.Net.NetworkInformation.Ping();
-            var pingReply = ping.Send(uri.Host);
-            if (pingReply?.Status != IPStatus.Success)
-                throw new PingException("Could not connect to Sphere Kit. Please check your network settings.");
-
             // Initialise authentication session
             InitialiseAuthenticationSession();
 

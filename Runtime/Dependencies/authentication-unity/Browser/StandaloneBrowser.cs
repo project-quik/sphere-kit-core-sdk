@@ -40,7 +40,7 @@ namespace Cdm.Authentication.Browser
                     margin: 0;
                     padding: 1.25rem;
                     color: #e7e0eb;
-                    background: linear-gradient(to bottom right, #160d29, #092330);
+                    background-color: #1a1524;
                 }
 
                 @media (min-width: 640px) {
@@ -101,17 +101,15 @@ namespace Cdm.Authentication.Browser
         </body>
         </html>
         ";
-        string _loginOrigin;
+
+        private string _loginOrigin;
 
         public async Task<BrowserResult> StartAsync(
             string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
         {
             _taskCompletionSource = new TaskCompletionSource<BrowserResult>();
 
-            cancellationToken.Register(() =>
-            {
-                _taskCompletionSource?.TrySetCanceled();
-            });
+            cancellationToken.Register(() => { _taskCompletionSource?.TrySetCanceled(); });
 
             using var httpListener = new HttpListener();
 
@@ -173,11 +171,8 @@ namespace Cdm.Authentication.Browser
         /// <see href="https://learn.microsoft.com/en-us/dotnet/api/system.net.httplistener?view=net-7.0#remarks" />
         private string AddForwardSlashIfNecessary(string url)
         {
-            string forwardSlash = "/";
-            if (!url.EndsWith(forwardSlash))
-            {
-                url += forwardSlash;
-            }
+            var forwardSlash = "/";
+            if (!url.EndsWith(forwardSlash)) url += forwardSlash;
 
             return url;
         }
