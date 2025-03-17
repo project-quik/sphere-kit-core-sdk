@@ -504,15 +504,24 @@ namespace SphereKit
 
         /// <summary>
         /// Gets achievements available in the game.
-        /// If no query is specified, skill-based achievements will be sorted by alphabetical order of display name, and story-based achievements will be sorted by story progress, then group ID, then group relative order.
+        /// If no sort field/direction is provided, achievements will be returned in ascending order of their display name.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="pageSize">The number of achievements to retrieve at a time.</param>
-        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <param name="groupName">The group ID to get achievements from.</param>
+        /// <param name="ungrouped">Whether to get ungrouped achievements.</param>
+        /// <param name="sortBy">The field to sort the achievements by.</param>
+        /// <param name="sortDirection">The direction to sort the achievements by.</param>
         /// <returns>A cursor where the next <see cref="pageSize"/> achievements can be retrieved.</returns>
         public static AchievementsCursor GetAllAchievements(string? query = null, int pageSize = 30,
-            bool queryByGroup = false)
+            string? groupName = null, bool? ungrouped = null,
+            AchievementsSortField sortBy = AchievementsSortField.DisplayName,
+            SortDirection sortDirection = SortDirection.Ascending)
         {
+            if ((groupName == null || ungrouped == true) && sortBy == AchievementsSortField.GroupOrder)
+                throw new ArgumentException(
+                    "Cannot sort by group order without filtering by a group. Please provide a group name.");
+
             CheckInitialized();
             CheckSignedIn();
 
@@ -523,7 +532,8 @@ namespace SphereKit
             {
                 if (reachedEnd) return Array.Empty<Achievement>();
 
-                var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
+                var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, groupName, ungrouped,
+                    sortBy, sortDirection);
                 if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
 
                 currentStartAfter = achievements.LastOrDefault()?.Id;
@@ -533,15 +543,17 @@ namespace SphereKit
 
         /// <summary>
         /// Gets a list of achievements. Used by the cursor to get the next page of achievements.
-        /// If no query is specified, skill-based achievements will be sorted by alphabetical order of display name, and story-based achievements will be sorted by story progress, then group ID, then group relative order.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="limit">The number of achievements to retrieve at a time.</param>
         /// <param name="startAfter">The achievement ID to start retrieving achievements after.</param>
-        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <param name="groupName">The group ID to get achievements from.</param>
+        /// <param name="ungrouped">Whether to get ungrouped achievements.</param>
+        /// <param name="sortBy">The field to sort the achievements by.</param>
+        /// <param name="sortDirection">The direction to sort the achievements by.</param>
         /// <returns>A list of achievements matching the parameters.</returns>
         private static async Task<Achievement[]> GetAchievementsPage(string? query, int limit, string? startAfter,
-            bool queryByGroup)
+            string? groupName, bool? ungrouped, AchievementsSortField sortBy, SortDirection sortDirection)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -555,7 +567,24 @@ namespace SphereKit
 
             if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
 
-            if (queryByGroup) parameters["queryByGroup"] = "true";
+            if (!string.IsNullOrEmpty(groupName)) parameters["groupName"] = groupName;
+
+            if (ungrouped != null) parameters["ungrouped"] = ungrouped.ToString();
+
+            parameters["sortBy"] = sortBy switch
+            {
+                AchievementsSortField.DisplayName => "displayName",
+                AchievementsSortField.GroupOrder => "groupOrder",
+                AchievementsSortField.PercentageAchieved => "percentageAchieved",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
+            };
+
+            parameters["sortDirection"] = sortDirection switch
+            {
+                SortDirection.Ascending => "asc",
+                SortDirection.Descending => "desc",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortDirection), sortDirection, null)
+            };
 
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
@@ -577,15 +606,50 @@ namespace SphereKit
         }
 
         /// <summary>
-        /// Gets an array of all achievement IDs in the game.
+        /// Gets an array of core achievement information in the game - including achievement ID, display name, group name and group order.
         /// </summary>
-        /// <returns>An array of all achievement IDs.</returns>
-        public static async Task<string[]> ListAllAchievements()
+        /// <param name="groupName">The group ID to get achievements from.</param>
+        /// <param name="ungrouped">Whether to get ungrouped achievements.</param>
+        /// <param name="sortBy">The field to sort the achievements by.</param>
+        /// <param name="sortDirection">The direction to sort the achievements by.</param>
+        /// <returns>An array of core achievement information.</returns>
+        public static async Task<ListedAchievement[]> ListAllAchievements(string? groupName = null,
+            bool? ungrouped = null,
+            AchievementsSortField sortBy = AchievementsSortField.DisplayName,
+            SortDirection sortDirection = SortDirection.Ascending)
         {
+            if ((groupName == null || ungrouped == true) && sortBy == AchievementsSortField.GroupOrder)
+                throw new ArgumentException(
+                    "Cannot sort by group order without filtering by a group. Please provide a group name.");
+
             CheckInitialized();
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:list");
+            var baseUrl = $"{ServerUrl}/achievements:list";
+            var parameters = new Dictionary<string, string>();
+
+            if (!string.IsNullOrEmpty(groupName)) parameters["groupName"] = groupName;
+
+            if (ungrouped != null) parameters["ungrouped"] = ungrouped.ToString();
+
+            parameters["sortBy"] = sortBy switch
+            {
+                AchievementsSortField.DisplayName => "displayName",
+                AchievementsSortField.GroupOrder => "groupOrder",
+                AchievementsSortField.PercentageAchieved => "percentageAchieved",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
+            };
+
+            parameters["sortDirection"] = sortDirection switch
+            {
+                SortDirection.Ascending => "asc",
+                SortDirection.Descending => "desc",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortDirection), sortDirection, null)
+            };
+
+            var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementsResponse.IsSuccessStatusCode)
@@ -593,23 +657,27 @@ namespace SphereKit
                 var listAchievementsResponseData =
                     JsonConvert.DeserializeObject<ListAchievementsResponse>(await listAchievementsResponse.Content
                         .ReadAsStringAsync());
-                return listAchievementsResponseData.AchievementIDs;
+                return listAchievementsResponseData.Achievements;
             }
             else
             {
                 await HandleErrorResponse(listAchievementsResponse);
-                return Array.Empty<string>();
+                return Array.Empty<ListedAchievement>();
             }
         }
 
         /// <summary>
         /// Gets achievement groups available in the game.
-        /// If no query is specified, achievement groups will be sorted by story progress, then group ID.
+        /// If no sort field/direction is provided, achievement groups will be returned in ascending order of their display name.
         /// </summary>
         /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="pageSize">The number of achievement groups to retrieve at a time.</param>
+        /// <param name="sortBy">The field to sort the achievement groups by.</param>
+        /// <param name="sortDirection">The direction to sort the achievements groups by.</param>
         /// <returns>A cursor where the next <see cref="pageSize"/> achievement groups can be retrieved.</returns>
-        public static AchievementGroupsCursor GetAchievementGroups(string? query = null, int pageSize = 30)
+        public static AchievementGroupsCursor GetAchievementGroups(string? query = null, int pageSize = 30,
+            AchievementGroupsSortField sortBy = AchievementGroupsSortField.DisplayName,
+            SortDirection sortDirection = SortDirection.Ascending)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -631,14 +699,17 @@ namespace SphereKit
 
         /// <summary>
         /// Gets a list of achievement groups. Used by the cursor to get the next page of achievement groups.
-        /// If no query is specified, achievement groups will be sorted by story progress, then group ID.
+        /// If no sort field/direction is provided, achievement groups will be returned in ascending order of their display name.
         /// </summary>
         /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="limit">The number of achievement groups to retrieve at a time.</param>
         /// <param name="startAfter">The achievement group ID to start retrieving achievement groups after.</param>
+        /// <param name="sortBy">The field to sort the achievement groups by.</param>
+        /// <param name="sortDirection">The direction to sort the achievements groups by.</param>
         /// <returns>A list of achievement groups matching the parameters.</returns>
         private static async Task<AchievementGroup[]> GetAchievementGroupsPage(string? query, int limit,
-            string? startAfter)
+            string? startAfter, AchievementGroupsSortField sortBy = AchievementGroupsSortField.DisplayName,
+            SortDirection sortDirection = SortDirection.Ascending)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -651,6 +722,19 @@ namespace SphereKit
             if (!string.IsNullOrEmpty(query)) parameters["query"] = query;
 
             if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
+
+            parameters["sortBy"] = sortBy switch
+            {
+                AchievementGroupsSortField.DisplayName => "displayName",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
+            };
+
+            parameters["sortDirection"] = sortDirection switch
+            {
+                SortDirection.Ascending => "asc",
+                SortDirection.Descending => "desc",
+                _ => throw new ArgumentOutOfRangeException(nameof(sortDirection), sortDirection, null)
+            };
 
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
@@ -672,15 +756,35 @@ namespace SphereKit
         }
 
         /// <summary>
-        /// Gets an array of all achievement group IDs and their story progress in the game.
+        /// Gets an array of all achievement group IDs and their display name in the game.
         /// </summary>
-        /// <returns>An array of all achievement group IDs and their story progress.</returns>
-        public static async Task<ListedAchievementGroup[]> ListAchievementGroups()
+        /// <returns>An array of all achievement group IDs and their display name.</returns>
+        public static async Task<ListedAchievementGroup[]> ListAchievementGroups(
+            AchievementGroupsSortField sortBy = AchievementGroupsSortField.DisplayName,
+            SortDirection sortDirection = SortDirection.Ascending)
         {
             CheckInitialized();
             CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/achievements:groups:list");
+            var baseUrl = $"{ServerUrl}/achievements:groups:list";
+            var parameters = new Dictionary<string, string>
+            {
+                ["sortBy"] = sortBy switch
+                {
+                    AchievementGroupsSortField.DisplayName => "displayName",
+                    _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
+                },
+                ["sortDirection"] = sortDirection switch
+                {
+                    SortDirection.Ascending => "asc",
+                    SortDirection.Descending => "desc",
+                    _ => throw new ArgumentOutOfRangeException(nameof(sortDirection), sortDirection, null)
+                }
+            };
+
+            var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
             requestMessage.Headers.Add("Authorization", $"Bearer {AccessToken}");
             var listAchievementGroupsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementGroupsResponse.IsSuccessStatusCode)
@@ -701,7 +805,7 @@ namespace SphereKit
         /// Adds an achievement to the signed-in player's achievements.
         /// </summary>
         /// <param name="achievementId">The ID of the achievement to add.</param>
-        public static async Task AddAchievement(string achievementId)
+        public static async Task AcquireAchievement(string achievementId)
         {
             CheckInitialized();
             CheckSignedIn();
@@ -843,5 +947,23 @@ namespace SphereKit
             await SignOut();
             _playerStateChangeListeners.Clear();
         }
+    }
+
+    public enum AchievementsSortField
+    {
+        DisplayName,
+        PercentageAchieved,
+        GroupOrder
+    }
+
+    public enum AchievementGroupsSortField
+    {
+        DisplayName
+    }
+
+    public enum SortDirection
+    {
+        Ascending,
+        Descending
     }
 }

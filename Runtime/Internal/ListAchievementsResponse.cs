@@ -10,6 +10,6 @@ namespace SphereKit
     {
         [Preserve]
         [DataMember(IsRequired = true, Name = "achievements")]
-        public readonly string[] AchievementIDs;
+        public readonly ListedAchievement[] Achievements;
     }
 }

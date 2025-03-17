@@ -18,9 +18,9 @@ namespace SphereKit
         public readonly string Id = "";
 
         /// <summary>
-        /// The story progress of the achievement group.
+        /// The display name of the achievement group.
         /// </summary>
-        [Preserve] [DataMember(IsRequired = true, Name = "progress")]
-        public readonly float Progress;
+        [Preserve] [DataMember(IsRequired = true, Name = "displayName")]
+        public readonly string DisplayName = "";
     }
 }

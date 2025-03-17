@@ -119,14 +119,14 @@ namespace SphereKit
 
         /// <summary>
         /// Gets achievements achieved by the player.
-        /// If no query is specified, achievements will be ordered by the date and time they were achieved.
+        /// Achievements will be ordered by the date and time they were achieved.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="pageSize">The number of achievements to retrieve at a time.</param>
-        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <param name="groupName">The group ID to get achievements from.</param>
         /// <returns>A cursor where the next <see cref="pageSize"/> achievements can be retrieved.</returns>
         public PlayerAchievementsCursor GetPlayerAchievements(string? query = null, int pageSize = 30,
-            bool queryByGroup = false)
+            string? groupName = null)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
@@ -138,7 +138,7 @@ namespace SphereKit
             {
                 if (reachedEnd) return Array.Empty<PlayerAchievement>();
 
-                var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter, queryByGroup);
+                var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter, groupName);
                 if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
@@ -147,15 +147,15 @@ namespace SphereKit
 
         /// <summary>
         /// Gets a list of achievements achieved by the player. Used by the cursor to get the next page of achievements.
-        /// If no query is specified, achievements will be ordered by the date and time they were achieved.
+        /// Achievements will be ordered by the date and time they were achieved.
         /// </summary>
-        /// <param name="query">A full-text search query, either by the display name, short description or detailed description. If <see cref="queryByGroup"/> is true, the query must exactly match the group ID.</param>
+        /// <param name="query">A full-text search query, either by the display name, short description or detailed description.</param>
         /// <param name="limit">The number of achievements to retrieve at a time.</param>
         /// <param name="startAfter">The achievement ID to start retrieving achievements after.</param>
-        /// <param name="queryByGroup">Whether to get all achievements in a specific group.</param>
+        /// <param name="groupName">The group ID to get achievements from.</param>
         /// <returns>A list of achievements matching the parameters.</returns>
         private async Task<PlayerAchievement[]> GetPlayerAchievementsPage(string? query, int limit, string? startAfter,
-            bool queryByGroup)
+            string? groupName = null)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
@@ -167,7 +167,7 @@ namespace SphereKit
             };
             if (!string.IsNullOrEmpty(query)) parameters["query"] = query;
             if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
-            if (queryByGroup) parameters["queryByGroup"] = "true";
+            if (!string.IsNullOrEmpty(groupName)) parameters["groupName"] = groupName;
             var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
 
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
@@ -191,14 +191,21 @@ namespace SphereKit
         /// <summary>
         /// Gets an array of achievement IDs achieved by the player.
         /// </summary>
+        /// <param name="groupName">The group ID to get achievements from.</param>
         /// <returns>An array of achievement IDs achieved.</returns>
-        public async Task<ListedPlayerAchievement[]> ListPlayerAchievements()
+        public async Task<ListedPlayerAchievement[]> ListPlayerAchievements(string? groupName = null)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Get,
-                $"{CoreServices.ServerUrl}/auth/players/{Uid}/achievements:list");
+            var baseUrl = $"{CoreServices.ServerUrl}/auth/players/{Uid}/achievements:list";
+            var parameters = new Dictionary<string, string>();
+
+            if (!string.IsNullOrEmpty(groupName)) parameters["groupName"] = groupName;
+
+            var url = UrlBuilder.New(baseUrl).SetQueryParameters(parameters).ToString();
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Get, url);
             requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
             var listAchievementsResponse = await _httpClient.SendAsync(requestMessage);
             if (listAchievementsResponse.IsSuccessStatusCode)

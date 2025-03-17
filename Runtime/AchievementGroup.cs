@@ -33,12 +33,6 @@ namespace SphereKit
         [Preserve] [DataMember(IsRequired = true, Name = "shortDescription")]
         public readonly string ShortDescription = "";
 
-        /// <summary>
-        /// The story progress that this achievement group represents. Only available for story-based games.
-        /// </summary>
-        [Preserve] [DataMember(IsRequired = true, Name = "progress")]
-        public readonly float Progress;
-
         private static readonly HttpClient _httpClient = new();
 
         /// <summary>
