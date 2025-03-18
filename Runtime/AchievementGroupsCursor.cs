@@ -1,16 +1,15 @@
 using System;
 using System.Threading.Tasks;
 
-#nullable enable
 namespace SphereKit
 {
     public class AchievementGroupsCursor
     {
         public Func<Task<AchievementGroup[]>> Next;
+        public bool HasNext { get; internal set; } = true;
 
-        internal AchievementGroupsCursor(Func<Task<AchievementGroup[]>> next)
+        internal AchievementGroupsCursor()
         {
-            Next = next;
         }
     }
 }

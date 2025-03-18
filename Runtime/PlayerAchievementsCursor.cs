@@ -1,16 +1,15 @@
 using System;
 using System.Threading.Tasks;
 
-#nullable enable
 namespace SphereKit
 {
     public class PlayerAchievementsCursor
     {
-        public Func<Task<PlayerAchievement[]>> Next;
+        public Func<Task<PlayerAchievement[]>> Next { get; internal set; }
+        public bool HasNext { get; internal set; } = true;
 
-        internal PlayerAchievementsCursor(Func<Task<PlayerAchievement[]>> next)
+        internal PlayerAchievementsCursor()
         {
-            Next = next;
         }
     }
 }

@@ -132,17 +132,18 @@ namespace SphereKit
             CoreServices.CheckSignedIn();
 
             string? currentStartAfter = null;
-            var reachedEnd = false;
 
-            return new PlayerAchievementsCursor(async () =>
+            var cursor = new PlayerAchievementsCursor();
+            cursor.Next = async () =>
             {
-                if (reachedEnd) return Array.Empty<PlayerAchievement>();
+                if (!cursor.HasNext) return Array.Empty<PlayerAchievement>();
 
                 var achievements = await GetPlayerAchievementsPage(query, pageSize, currentStartAfter, groupName);
-                if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
+                if (achievements.Length < pageSize || achievements.Length == 0) cursor.HasNext = false;
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
-            });
+            };
+            return cursor;
         }
 
         /// <summary>

@@ -526,19 +526,20 @@ namespace SphereKit
             CheckSignedIn();
 
             string? currentStartAfter = null;
-            var reachedEnd = false;
 
-            return new AchievementsCursor(async () =>
+            var cursor = new AchievementsCursor();
+            cursor.Next = async () =>
             {
-                if (reachedEnd) return Array.Empty<Achievement>();
+                if (!cursor.HasNext) return Array.Empty<Achievement>();
 
                 var achievements = await GetAchievementsPage(query, pageSize, currentStartAfter, groupName, ungrouped,
                     sortBy, sortDirection);
-                if (achievements.Length < pageSize || achievements.Length == 0) reachedEnd = true;
+                if (achievements.Length < pageSize || achievements.Length == 0) cursor.HasNext = false;
 
                 currentStartAfter = achievements.LastOrDefault()?.Id;
                 return achievements;
-            });
+            };
+            return cursor;
         }
 
         /// <summary>
@@ -571,7 +572,7 @@ namespace SphereKit
 
             if (ungrouped != null) parameters["ungrouped"] = ungrouped.ToString();
 
-            parameters["sortBy"] = sortBy switch
+            parameters["sortField"] = sortBy switch
             {
                 AchievementsSortField.DisplayName => "displayName",
                 AchievementsSortField.GroupOrder => "groupOrder",
@@ -632,7 +633,7 @@ namespace SphereKit
 
             if (ungrouped != null) parameters["ungrouped"] = ungrouped.ToString();
 
-            parameters["sortBy"] = sortBy switch
+            parameters["sortField"] = sortBy switch
             {
                 AchievementsSortField.DisplayName => "displayName",
                 AchievementsSortField.GroupOrder => "groupOrder",
@@ -683,18 +684,19 @@ namespace SphereKit
             CheckSignedIn();
 
             string? currentStartAfter = null;
-            var reachedEnd = false;
 
-            return new AchievementGroupsCursor(async () =>
+            var cursor = new AchievementGroupsCursor();
+            cursor.Next = async () =>
             {
-                if (reachedEnd) return Array.Empty<AchievementGroup>();
+                if (!cursor.HasNext) return Array.Empty<AchievementGroup>();
 
                 var achievementGroups = await GetAchievementGroupsPage(query, pageSize, currentStartAfter);
-                if (achievementGroups.Length < pageSize || achievementGroups.Length == 0) reachedEnd = true;
+                if (achievementGroups.Length < pageSize || achievementGroups.Length == 0) cursor.HasNext = false;
 
                 currentStartAfter = achievementGroups.LastOrDefault()?.Id;
                 return achievementGroups;
-            });
+            };
+            return cursor;
         }
 
         /// <summary>
@@ -723,7 +725,7 @@ namespace SphereKit
 
             if (!string.IsNullOrEmpty(startAfter)) parameters["startAfter"] = startAfter;
 
-            parameters["sortBy"] = sortBy switch
+            parameters["sortField"] = sortBy switch
             {
                 AchievementGroupsSortField.DisplayName => "displayName",
                 _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
@@ -769,7 +771,7 @@ namespace SphereKit
             var baseUrl = $"{ServerUrl}/achievements:groups:list";
             var parameters = new Dictionary<string, string>
             {
-                ["sortBy"] = sortBy switch
+                ["sortField"] = sortBy switch
                 {
                     AchievementGroupsSortField.DisplayName => "displayName",
                     _ => throw new ArgumentOutOfRangeException(nameof(sortBy), sortBy, null)
