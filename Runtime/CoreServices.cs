@@ -314,6 +314,7 @@ namespace SphereKit
         {
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{ServerUrl}/databases:list");
             requestMessage.Headers.Add("X-Sphere-Project-Name", _projectId);
+            Debug.Log($"{ServerUrl}/databases:list");
             var databasesResponse = await _httpClient.SendAsync(requestMessage);
             if (databasesResponse.IsSuccessStatusCode)
             {
@@ -472,11 +473,11 @@ namespace SphereKit
         }
 
         /// <summary>
-        /// Updates the signed-in player's attributes and metadata.
+        /// Updates the signed-in player's metadata.
         /// </summary>
         /// <param name="update">The update specification.</param>
         /// <returns>The updated player information.</returns>
-        public static async Task<Player> UpdatePlayerInfo(Dictionary<PlayerDataField, PlayerDataOperation> update)
+        public static async Task<Player> UpdatePlayerMetadata(Dictionary<string, PlayerDataOperation> update)
         {
             CheckInitialized();
             CheckSignedIn();

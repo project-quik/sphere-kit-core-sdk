@@ -5,19 +5,23 @@ namespace SphereKit
 {
     public class InternalServerException : Exception
     {
-        public InternalServerException(string message) : base(message) { }
+        public InternalServerException(string? message) : base(message)
+        {
+        }
     }
 
     public class RateLimitException : Exception
     {
-        public RateLimitException(string message) : base(message) { }
+        public RateLimitException(string? message) : base(message)
+        {
+        }
     }
 
     public class NotFoundException : Exception
     {
         public NotFoundExceptionCode Code { get; private set; }
 
-        public NotFoundException(string code, string message) : base($"({code}) {message}")
+        public NotFoundException(string code, string? message) : base($"({code}) {message}")
         {
             Code = NotFoundExceptionCodeExtensions.GetExceptionCode(code);
         }
@@ -27,7 +31,7 @@ namespace SphereKit
     {
         public ForbiddenExceptionCode Code { get; private set; }
 
-        public ForbiddenException(string code, string message) : base($"({code}) {message}")
+        public ForbiddenException(string code, string? message) : base($"({code}) {message}")
         {
             Code = ForbiddenExceptionCodeExtensions.GetExceptionCode(code);
         }
@@ -37,7 +41,7 @@ namespace SphereKit
     {
         public AuthenticationExceptionCode Code { get; private set; }
 
-        public AuthenticationException(string code, string message) : base($"({code}) {message}")
+        public AuthenticationException(string code, string? message) : base($"({code}) {message}")
         {
             Code = AuthenticationExceptionCodeExtensions.GetExceptionCode(code);
         }
@@ -47,7 +51,7 @@ namespace SphereKit
     {
         public string Code { get; private set; }
 
-        public BadRequestException(string code, string message) : base($"({code}) {message}")
+        public BadRequestException(string code, string? message) : base($"({code}) {message}")
         {
             Code = code;
         }

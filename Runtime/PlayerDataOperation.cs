@@ -157,12 +157,12 @@ namespace SphereKit
         /// <param name="update">The update specification, with field as key and operation as value.</param>
         /// <returns>The request data.</returns>
         internal static Dictionary<string, object> ConvertUpdateToRequestData(
-            Dictionary<PlayerDataField, PlayerDataOperation> update)
+            Dictionary<string, PlayerDataOperation> update)
         {
             var updateRequestData = new Dictionary<string, object>();
             foreach (var keyValuePair in update)
             {
-                var fieldKey = keyValuePair.Key.Key;
+                var fieldKey = keyValuePair.Key;
                 var operationKey = keyValuePair.Value.OperationType;
                 var operationValue = keyValuePair.Value.Value;
                 var operationKeyStr = GetStringOperationType(operationKey);

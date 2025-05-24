@@ -62,18 +62,6 @@ namespace SphereKit
         public DateTime? JoinDate { get; private set; }
 
         /// <summary>
-        /// The current level of the player. This is visible in the Sphere app.
-        /// </summary>
-        [Preserve] [DataMember(Name = "level")]
-        public readonly int? Level;
-
-        /// <summary>
-        /// The current score of the player. This is visible in the Sphere app.
-        /// </summary>
-        [Preserve] [DataMember(Name = "score")]
-        public readonly long? Score;
-
-        /// <summary>
         /// The metadata of the player. This is visible in the Sphere app.
         /// </summary>
         [Preserve] [DataMember(IsRequired = true, Name = "metadata")]
