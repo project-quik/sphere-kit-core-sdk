@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -103,9 +105,11 @@ namespace Cdm.Authentication.Browser
         ";
 
         private string _loginOrigin;
+        private string _allowedOrigin;
 
         public async Task<BrowserResult> StartAsync(
-            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
+            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default,
+            bool internalDevelopmentMode = false)
         {
             _taskCompletionSource = new TaskCompletionSource<BrowserResult>();
 
@@ -116,6 +120,7 @@ namespace Cdm.Authentication.Browser
             try
             {
                 _loginOrigin = new Uri(loginUrl).GetLeftPart(UriPartial.Authority);
+                _allowedOrigin = internalDevelopmentMode ? "http://127.0.0.1:3100" : "https://client.api.sphereapp.co";
                 redirectUrl = AddForwardSlashIfNecessary(redirectUrl);
                 httpListener.Prefixes.Add(redirectUrl);
                 httpListener.Start();
@@ -137,20 +142,17 @@ namespace Cdm.Authentication.Browser
             var httpContext = httpListener.EndGetContext(result);
             var httpRequest = httpContext.Request;
             var httpResponse = httpContext.Response;
+            httpResponse.AddHeader("Access-Control-Allow-Origin", _allowedOrigin);
+            httpResponse.AddHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
             if (httpRequest.HttpMethod == "OPTIONS")
             {
-                httpResponse.AddHeader("Access-Control-Allow-Origin", _loginOrigin);
-                httpResponse.AddHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
                 httpResponse.StatusCode = 200;
                 httpResponse.ContentLength64 = 0;
                 httpResponse.OutputStream.Close();
             }
             else
             {
-                // Add simple cors
-                httpResponse.AddHeader("Access-Control-Allow-Origin", _loginOrigin);
-
                 // Build a response to send an "ok" back to the browser for the user to see.
                 var buffer = System.Text.Encoding.UTF8.GetBytes(_closePageResponse);
 

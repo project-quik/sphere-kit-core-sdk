@@ -9,7 +9,10 @@ namespace SphereKit
         ExpiredAccessToken = 1,
         InvalidAccessToken = 2,
         InvalidCodeVerifier = 3,
-        InvalidRefreshToken = 4
+        InvalidRefreshToken = 4,
+        SignInCancelled = 5,
+        SignInFailed = 6,
+        SignInTimeout = 7
     }
 
     internal static class AuthenticationExceptionCodeExtensions

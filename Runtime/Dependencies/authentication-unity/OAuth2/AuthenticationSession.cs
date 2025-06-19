@@ -3,6 +3,7 @@ using System;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
+using SphereKit;
 using UnityEngine;
 
 namespace Cdm.Authentication.OAuth2
@@ -40,8 +41,6 @@ namespace Cdm.Authentication.OAuth2
         /// Asynchronously authorizes the installed application to access user's protected data.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token to cancel operation.</param>
-        /// <exception cref="AuthorizationCodeRequestException"></exception>
-        /// <exception cref="AccessTokenRequestException"></exception>
         /// <exception cref="AuthenticationException"></exception>
         public async Task<AccessTokenResponse> AuthenticateAsync(CancellationToken cancellationToken = default)
         {
@@ -54,6 +53,7 @@ namespace Cdm.Authentication.OAuth2
 
                 var redirectUrl = _client.configuration.redirectUri;
                 var authorizationUrl = _client.GetAuthorizationUrl();
+                var internalDevelopmentMode = _client.configuration.internalDevelopmentMode;
 
                 // 2. Get authorization code grant using login form in the browser.
                 Debug.Log("Getting authorization grant using browser login...");
@@ -63,7 +63,8 @@ namespace Cdm.Authentication.OAuth2
                     cancellationToken, timeoutCancellationTokenSource.Token);
 
                 var browserResult =
-                    await _browser.StartAsync(authorizationUrl, redirectUrl, loginCancellationTokenSource.Token);
+                    await _browser.StartAsync(authorizationUrl, redirectUrl, loginCancellationTokenSource.Token,
+                        internalDevelopmentMode ?? false);
                 if (browserResult.status == BrowserStatus.Success)
                 {
                     // 3. Exchange authorization code for access and refresh tokens.
@@ -76,18 +77,18 @@ namespace Cdm.Authentication.OAuth2
                 }
 
                 if (browserResult.status == BrowserStatus.UserCanceled)
-                {
-                    throw new AuthenticationException(AuthenticationError.Cancelled, browserResult.error);
-                }
+                    throw new AuthenticationException(AuthenticationExceptionCode.SignInCancelled, browserResult.error);
 
-                throw new AuthenticationException(AuthenticationError.Other, browserResult.error);
+                throw new AuthenticationException(AuthenticationExceptionCode.SignInFailed, browserResult.error);
             }
             catch (TaskCanceledException e)
             {
                 if (timeoutCancellationTokenSource.IsCancellationRequested)
-                    throw new AuthenticationException(AuthenticationError.Timeout, "Operation timed out.");
+                    throw new AuthenticationException(AuthenticationExceptionCode.SignInTimeout,
+                        "Operation timed out.");
 
-                throw new AuthenticationException(AuthenticationError.Cancelled, "Operation was cancelled.", e);
+                throw new AuthenticationException(AuthenticationExceptionCode.SignInCancelled,
+                    "Operation was cancelled.");
             }
         }
 
@@ -118,10 +119,7 @@ namespace Cdm.Authentication.OAuth2
         /// <seealso cref="SupportsUserInfo"/>
         public async Task<IUserInfo> GetUserInfoAsync(CancellationToken cancellationToken = default)
         {
-            if (SupportsUserInfo())
-            {
-                return await ((IUserInfoProvider)_client).GetUserInfoAsync(cancellationToken);
-            }
+            if (SupportsUserInfo()) return await ((IUserInfoProvider)_client).GetUserInfoAsync(cancellationToken);
 
             return null;
         }

@@ -45,6 +45,11 @@ namespace SphereKit
         {
             Code = AuthenticationExceptionCodeExtensions.GetExceptionCode(code);
         }
+
+        public AuthenticationException(AuthenticationExceptionCode code, string? message) : base(message)
+        {
+            Code = code;
+        }
     }
 
     public class BadRequestException : Exception

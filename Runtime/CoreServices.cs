@@ -54,10 +54,16 @@ namespace SphereKit
         /// </summary>
         internal static string ServerUrl => _serverUrl;
 
+        /// <summary>
+        /// Whether the user is signed in.
+        /// </summary>
+        private static bool IsSignedIn => _accessTokenResponse != null;
+
         private static string _clientId = "";
         private static string _projectId = "";
         private static string _serverUrl = "";
         private static string _deepLinkScheme = "";
+        private static bool _internalDevelopmentMode = false;
         private static string _redirectUri = "";
         private static AuthenticationSession? _authenticationSession;
         private static AccessTokenResponse? _accessTokenResponse;
@@ -80,7 +86,7 @@ namespace SphereKit
         /// Initialises Sphere Kit. This method must be called before any other methods in the Sphere Kit SDK.
         /// </summary>
         /// <exception cref="MissingFieldException">Some required settings fields were not configured.</exception>
-        /// <exception cref="PingException">Could not connect to Sphere Kit servers.</exception>
+        /// 
         public static async Task Initialize()
         {
             // Load configuration
@@ -109,11 +115,12 @@ namespace SphereKit
             _projectId = config.projectID;
             _serverUrl = config.serverURL;
             _deepLinkScheme = config.deepLinkScheme;
+            _internalDevelopmentMode = config.internalDevelopmentMode;
 
 #if UNITY_IOS || UNITY_ANDROID
             _redirectUri = _deepLinkScheme + "://oauth";
 #else
-            _redirectUri = "http://localhost:8080/spherekit/oauth";
+            _redirectUri = "http://localhost:8000/spherekit/oauth";
 #endif
 
             // Initialise authentication session
@@ -141,14 +148,25 @@ namespace SphereKit
                 if (_accessTokenResponse != null)
                 {
                     if (_accessTokenExpiringIn <= 0)
-                    {
                         await RefreshAccessToken();
-                    }
                     else
-                    {
-                        await InternalGetPlayerInfo(_uid!);
-                        await GetAchievementsSettings();
-                    }
+                        try
+                        {
+                            await InternalGetPlayerInfo(_uid!);
+                            await GetAchievementsSettings();
+                        }
+                        catch (Exception e)
+                        {
+                            if (e is AuthenticationException)
+                            {
+                                _accessTokenResponse = null;
+                                await SignOut();
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
                 }
             }
             else
@@ -170,7 +188,8 @@ namespace SphereKit
             {
                 clientId = _clientId,
                 scope = "profile project",
-                redirectUri = _redirectUri
+                redirectUri = _redirectUri,
+                internalDevelopmentMode = _internalDevelopmentMode
             };
             var auth = new SphereAuth(authConfig, ServerUrl);
             var crossPlatformBrowser = new CrossPlatformBrowser();
@@ -202,16 +221,19 @@ namespace SphereKit
         /// Signs in the player to the game using their Sphere account.
         /// </summary>
         /// <exception cref="InvalidOperationException">Authentication will not work on iOS and Android because the Deep Link Scheme has not been configured.</exception>
+        /// <exception cref="AuthenticationException">OAuth authentication may fail due to user cancellation or operation timeout.</exception>
         public static async Task SignInWithSphere()
         {
             CheckInitialized();
 
+            // Check if the user is already signed in
+            if (IsSignedIn) return;
+
             // Check platform specific requirements
 #if UNITY_IOS || UNITY_ANDROID
             if (string.IsNullOrEmpty(_deepLinkScheme))
-            {
-                throw new InvalidOperationException("The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
-            }
+                throw new InvalidOperationException(
+                    "The Deep Link Scheme has not been configured in Project Settings yet. Authentication will not work on iOS and Android.");
 #endif
 
             // Start OAuth2 flow
@@ -234,7 +256,7 @@ namespace SphereKit
         /// <exception cref="AuthenticationException">User is not signed in.</exception>
         internal static void CheckSignedIn()
         {
-            if (_accessTokenResponse == null)
+            if (!IsSignedIn)
                 throw new AuthenticationException("auth/not-signed-in", "User is not signed in.");
         }
 
@@ -321,7 +343,7 @@ namespace SphereKit
                 var databaseResponse = JsonConvert.DeserializeObject<ListDatabasesResponse>(await databasesResponse
                     .Content
                     .ReadAsStringAsync());
-                var databaseId = databaseResponse.Databases.First();
+                var databaseId = databaseResponse.Databases.Length > 0 ? databaseResponse.Databases.First() : null;
                 DatabaseSettings = new DatabaseSettings(databaseId);
 
                 Debug.Log("Database settings retrieved and set.");
@@ -514,7 +536,7 @@ namespace SphereKit
         /// <param name="sortBy">The field to sort the achievements by.</param>
         /// <param name="sortDirection">The direction to sort the achievements by.</param>
         /// <returns>A cursor where the next <see cref="pageSize"/> achievements can be retrieved.</returns>
-        public static AchievementsCursor GetAllAchievements(string? query = null, int pageSize = 30,
+        public static AchievementsCursor GetAchievements(string? query = null, int pageSize = 30,
             string? groupName = null, bool? ungrouped = null,
             AchievementsSortField sortBy = AchievementsSortField.DisplayName,
             SortDirection sortDirection = SortDirection.Ascending)
@@ -762,7 +784,7 @@ namespace SphereKit
         /// Gets an array of all achievement group IDs and their display name in the game.
         /// </summary>
         /// <returns>An array of all achievement group IDs and their display name.</returns>
-        public static async Task<ListedAchievementGroup[]> ListAchievementGroups(
+        public static async Task<ListedAchievementGroup[]> ListAllAchievementGroups(
             AchievementGroupsSortField sortBy = AchievementGroupsSortField.DisplayName,
             SortDirection sortDirection = SortDirection.Ascending)
         {
@@ -904,8 +926,6 @@ namespace SphereKit
         /// </summary>
         public static async Task SignOut()
         {
-            CheckInitialized();
-
             // Sign out of the server
             if (_accessTokenResponse != null)
             {

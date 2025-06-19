@@ -13,14 +13,12 @@ namespace Cdm.Authentication.Browser
     {
         private TaskCompletionSource<BrowserResult> _taskCompletionSource;
 
-        public async Task<BrowserResult> StartAsync(string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
+        public async Task<BrowserResult> StartAsync(string loginUrl, string redirectUrl,
+            CancellationToken cancellationToken = default, bool internalDevelopmentMode = false)
         {
             _taskCompletionSource = new TaskCompletionSource<BrowserResult>();
 
-            cancellationToken.Register(() =>
-            {
-                _taskCompletionSource?.TrySetCanceled();
-            });
+            cancellationToken.Register(() => { _taskCompletionSource?.TrySetCanceled(); });
 
             Application.deepLinkActivated += OnDeepLinkActivated;
 

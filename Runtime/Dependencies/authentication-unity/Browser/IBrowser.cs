@@ -6,6 +6,7 @@ namespace Cdm.Authentication.Browser
     public interface IBrowser
     {
         Task<BrowserResult> StartAsync(
-            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default);
+            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default,
+            bool internalDevelopmentMode = false);
     }
 }

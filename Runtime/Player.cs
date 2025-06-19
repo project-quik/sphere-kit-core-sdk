@@ -182,7 +182,7 @@ namespace SphereKit
         /// </summary>
         /// <param name="groupName">The group ID to get achievements from.</param>
         /// <returns>An array of achievement IDs achieved.</returns>
-        public async Task<ListedPlayerAchievement[]> ListPlayerAchievements(string? groupName = null)
+        public async Task<ListedPlayerAchievement[]> ListAllPlayerAchievements(string? groupName = null)
         {
             CoreServices.CheckInitialized();
             CoreServices.CheckSignedIn();

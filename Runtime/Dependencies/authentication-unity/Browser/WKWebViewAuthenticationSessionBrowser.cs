@@ -9,7 +9,8 @@ namespace Cdm.Authentication.Browser
         private TaskCompletionSource<BrowserResult> _taskCompletionSource;
 
         public async Task<BrowserResult> StartAsync(
-            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
+            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default,
+            bool internalDevelopmentMode = false)
         {
             if (string.IsNullOrEmpty(loginUrl))
                 throw new ArgumentNullException(nameof(loginUrl));
@@ -30,10 +31,8 @@ namespace Cdm.Authentication.Browser
             try
             {
                 if (!authenticationSession.Start())
-                {
                     _taskCompletionSource.SetResult(
                         new BrowserResult(BrowserStatus.UnknownError, "Browser could not be started."));
-                }
 
                 return await _taskCompletionSource.Task;
             }
@@ -49,20 +48,14 @@ namespace Cdm.Authentication.Browser
             WKWebViewAuthenticationSessionError error)
         {
             if (error.code == WKWebViewAuthenticationSessionErrorCode.None)
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.Success, callbackUrl));
-            }
             else if (error.code == WKWebViewAuthenticationSessionErrorCode.CanceledLogin)
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.UserCanceled, callbackUrl, error.message));
-            }
             else
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.UnknownError, callbackUrl, error.message));
-            }
         }
     }
 }

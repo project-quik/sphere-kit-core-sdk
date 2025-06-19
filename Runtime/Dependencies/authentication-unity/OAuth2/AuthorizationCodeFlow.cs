@@ -104,7 +104,7 @@ namespace Cdm.Authentication.OAuth2
             {
                 clientId = configuration.clientId,
                 redirectUri = configuration.redirectUri,
-                scope = configuration.scope,
+                scope = configuration.scope
                 // state = state
             });
         }
@@ -118,10 +118,7 @@ namespace Cdm.Authentication.OAuth2
         /// </param>
         /// <param name="cancellationToken">Cancellation token to cancel operation.</param>
         /// <returns>Access token response which contains the access token.</returns>
-        /// <exception cref="AuthorizationCodeRequestException"></exception>
-        /// <exception cref="Exception"></exception>
-        /// <exception cref="SecurityException"></exception>
-        /// <exception cref="AccessTokenRequestException"></exception>
+        /// <exception cref="InternalServerException" />
         public virtual async Task<AccessTokenResponse> ExchangeCodeForAccessTokenAsync(string redirectUrl,
             CancellationToken cancellationToken = default)
         {
@@ -129,11 +126,13 @@ namespace Cdm.Authentication.OAuth2
             var query = HttpUtility.ParseQueryString(authorizationResponseUri.Query);
 
             // Is there any error?
-            if (JsonHelper.TryGetFromNameValueCollection<AuthorizationCodeRequestError>(query, out var authorizationError))
-                throw new AuthorizationCodeRequestException(authorizationError);
+            if (JsonHelper.TryGetFromNameValueCollection<AuthorizationCodeRequestError>(query,
+                    out var authorizationError))
+                throw new InternalServerException("Failed to parse authorization code response.");
 
-            if (!JsonHelper.TryGetFromNameValueCollection<AuthorizationCodeResponse>(query, out var authorizationResponse))
-                throw new Exception("Authorization code could not get.");
+            if (!JsonHelper.TryGetFromNameValueCollection<AuthorizationCodeResponse>(query,
+                    out var authorizationResponse))
+                throw new InternalServerException("Failed to parse authorization code response.");
 
             // Validate authorization response state.
             /*if (!string.IsNullOrEmpty(state) && state != authorizationResponse.state)
@@ -169,10 +168,7 @@ namespace Cdm.Authentication.OAuth2
         public async Task<AccessTokenResponse> GetOrRefreshTokenAsync(
             CancellationToken cancellationToken = default)
         {
-            if (ShouldRefreshToken())
-            {
-                return await RefreshTokenAsync(cancellationToken);
-            }
+            if (ShouldRefreshToken()) return await RefreshTokenAsync(cancellationToken);
 
             // Return from the cache immediately.
             return accessTokenResponse;
@@ -219,17 +215,14 @@ namespace Cdm.Authentication.OAuth2
             {
                 refreshToken = refreshToken,
                 scope = configuration.scope,
-                clientId = configuration.clientId,
+                clientId = configuration.clientId
             });
 
             Debug.Assert(parameters != null);
 
             var tokenResponse =
                 await GetAccessTokenInternalAsync(new FormUrlEncodedContent(parameters), cancellationToken);
-            if (!tokenResponse.HasRefreshToken())
-            {
-                tokenResponse.refreshToken = refreshToken;
-            }
+            if (!tokenResponse.HasRefreshToken()) tokenResponse.refreshToken = refreshToken;
 
             accessTokenResponse = tokenResponse;
             return accessTokenResponse;
@@ -331,6 +324,13 @@ namespace Cdm.Authentication.OAuth2
             /// </remarks>
             [DataMember(Name = "redirect_uri")]
             public string redirectUri { get; set; }
+
+            /// <summary>
+            /// When specified, any localhost or loopback address is allowed for CORS requests, allowing any local server to
+            /// redirect to this game.
+            /// </summary>
+            [DataMember(Name = "internalDevelopmentMode")]
+            public bool? internalDevelopmentMode { get; set; }
         }
     }
 }

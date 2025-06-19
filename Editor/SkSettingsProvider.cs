@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace SphereKit.Editor
@@ -9,7 +10,9 @@ namespace SphereKit.Editor
         internal const string ConfigPath = ProjectConfig.ConfigPath;
 
         private SkSettingsProvider(string path, SettingsScope scope = SettingsScope.Project)
-            : base(path, scope) { }
+            : base(path, scope)
+        {
+        }
 
         public override void OnActivate(string searchContext, VisualElement rootElement)
         {
@@ -22,6 +25,7 @@ namespace SphereKit.Editor
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("projectID"));
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("serverURL"));
             EditorGUILayout.PropertyField(_projectConfig.FindProperty("deepLinkScheme"));
+            EditorGUILayout.PropertyField(_projectConfig.FindProperty("internalDevelopmentMode"), label: new GUIContent("(Do Not Use) Internal Development Mode"), GUILayout.MinWidth(300f));
             _projectConfig.ApplyModifiedPropertiesWithoutUndo();
         }
 

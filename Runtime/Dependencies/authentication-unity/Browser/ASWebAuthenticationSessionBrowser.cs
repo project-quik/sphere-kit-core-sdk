@@ -18,7 +18,8 @@ namespace Cdm.Authentication.Browser
         public bool prefersEphemeralWebBrowserSession { get; set; } = false;
 
         public async Task<BrowserResult> StartAsync(
-            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default)
+            string loginUrl, string redirectUrl, CancellationToken cancellationToken = default,
+            bool internalDevelopmentMode = false)
         {
             if (string.IsNullOrEmpty(loginUrl))
                 throw new ArgumentNullException(nameof(loginUrl));
@@ -35,18 +36,13 @@ namespace Cdm.Authentication.Browser
                 new ASWebAuthenticationSession(loginUrl, redirectUrl, AuthenticationSessionCompletionHandler);
             authenticationSession.prefersEphemeralWebBrowserSession = prefersEphemeralWebBrowserSession;
 
-            cancellationToken.Register(() =>
-            {
-                _taskCompletionSource?.TrySetCanceled();
-            });
+            cancellationToken.Register(() => { _taskCompletionSource?.TrySetCanceled(); });
 
             try
             {
                 if (!authenticationSession.Start())
-                {
                     _taskCompletionSource.SetResult(
                         new BrowserResult(BrowserStatus.UnknownError, "Browser could not be started."));
-                }
 
                 return await _taskCompletionSource.Task;
             }
@@ -61,20 +57,14 @@ namespace Cdm.Authentication.Browser
         private void AuthenticationSessionCompletionHandler(string callbackUrl, ASWebAuthenticationSessionError error)
         {
             if (error.code == ASWebAuthenticationSessionErrorCode.None)
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.Success, callbackUrl));
-            }
             else if (error.code == ASWebAuthenticationSessionErrorCode.CanceledLogin)
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.UserCanceled, callbackUrl, error.message));
-            }
             else
-            {
                 _taskCompletionSource.SetResult(
                     new BrowserResult(BrowserStatus.UnknownError, callbackUrl, error.message));
-            }
         }
     }
 }
