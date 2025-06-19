@@ -220,14 +220,15 @@ namespace SphereKit
         /// <summary>
         /// Signs in the player to the game using their Sphere account.
         /// </summary>
+        /// <param name="refresh">Whether to open the browser and complete the full sign-in process even if the user has already been signed in.</param>
         /// <exception cref="InvalidOperationException">Authentication will not work on iOS and Android because the Deep Link Scheme has not been configured.</exception>
         /// <exception cref="AuthenticationException">OAuth authentication may fail due to user cancellation or operation timeout.</exception>
-        public static async Task SignInWithSphere()
+        public static async Task SignInWithSphere(bool refresh = false)
         {
             CheckInitialized();
 
             // Check if the user is already signed in
-            if (IsSignedIn) return;
+            if (IsSignedIn && !refresh) return;
 
             // Check platform specific requirements
 #if UNITY_IOS || UNITY_ANDROID
@@ -389,7 +390,7 @@ namespace SphereKit
                 // Schedule next refresh
                 ScheduleAccessTokenRefresh();
             }
-            catch (AuthenticationException)
+            catch (Exception ex) when (ex is AuthenticationException or BadRequestException)
             {
                 Debug.LogWarning("Failed to refresh token. User needs to sign in again.");
                 _accessTokenResponse = null;
