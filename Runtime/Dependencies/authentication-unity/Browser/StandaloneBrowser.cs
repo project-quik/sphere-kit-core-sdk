@@ -120,7 +120,7 @@ namespace Cdm.Authentication.Browser
             try
             {
                 _loginOrigin = new Uri(loginUrl).GetLeftPart(UriPartial.Authority);
-                _allowedOrigin = internalDevelopmentMode ? "http://127.0.0.1:3100" : "https://client.api.sphereapp.co";
+                _allowedOrigin = internalDevelopmentMode ? "http://127.0.0.1:3100" : "https://login.sphereapp.co";
                 redirectUrl = AddForwardSlashIfNecessary(redirectUrl);
                 httpListener.Prefixes.Add(redirectUrl);
                 httpListener.Start();

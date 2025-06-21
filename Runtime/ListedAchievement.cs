@@ -5,7 +5,7 @@ using UnityEngine.Scripting;
 namespace SphereKit
 {
     /// <summary>
-    /// Represents a summary of the player achievement.
+    /// Represents a summary of the achievement.
     /// </summary>
     [Preserve]
     [DataContract]

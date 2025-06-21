@@ -258,7 +258,7 @@ namespace SphereKit
         internal static void CheckSignedIn()
         {
             if (!IsSignedIn)
-                throw new AuthenticationException("auth/not-signed-in", "User is not signed in.");
+                throw new AuthenticationException(AuthenticationExceptionCode.NotSignedIn, "User is not signed in.");
         }
 
         /// <summary>
@@ -302,6 +302,7 @@ namespace SphereKit
         public static async Task<Player> GetPlayerInfo(string uid)
         {
             CheckInitialized();
+            CheckSignedIn();
 
             return await InternalGetPlayerInfo(uid);
         }
