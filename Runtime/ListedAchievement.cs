@@ -1,4 +1,7 @@
+using System.Net.Http;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
 #nullable enable
@@ -34,5 +37,34 @@ namespace SphereKit
         /// </summary>
         [Preserve] [DataMember(Name = "groupOrder")]
         public readonly int? GroupOrder;
+
+        private static readonly HttpClient _httpClient = new();
+
+        /// <summary>
+        /// Returns the detailed achievement with achievement description.
+        /// </summary>
+        /// <returns>The detailed achievement.</returns>
+        public async Task<DetailedAchievement> GetDetailedAchievement()
+        {
+            CoreServices.CheckInitialized();
+            CoreServices.CheckSignedIn();
+
+            using var requestMessage =
+                new HttpRequestMessage(HttpMethod.Get, $"{CoreServices.ServerUrl}/achievements/{Id}");
+            requestMessage.Headers.Add("Authorization", $"Bearer {CoreServices.AccessToken}");
+            var detailedAchievementResponse = await _httpClient.SendAsync(requestMessage);
+            if (detailedAchievementResponse.IsSuccessStatusCode)
+            {
+                var detailedAchievement =
+                    JsonConvert.DeserializeObject<DetailedAchievement>(await detailedAchievementResponse.Content
+                        .ReadAsStringAsync())!;
+                return detailedAchievement;
+            }
+            else
+            {
+                await CoreServices.HandleErrorResponse(detailedAchievementResponse);
+                return new DetailedAchievement();
+            }
+        }
     }
 }

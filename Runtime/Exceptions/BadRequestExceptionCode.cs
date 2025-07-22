@@ -71,7 +71,7 @@ namespace SphereKit
                 "databases/invalid-projection-value" => BadRequestExceptionCode.InvalidProjectionValue,
                 "databases/mixed-projection-values" => BadRequestExceptionCode.MixedProjectionValues,
                 "databases/same-key-multiple-operations" => BadRequestExceptionCode.SameKeyMultipleOperations,
-                "databases/invalid-update-value-type" => BadRequestExceptionCode.InvalidUpdateDataType,
+                "databases/invalid-update-data-type" => BadRequestExceptionCode.InvalidUpdateDataType,
                 "databases/invalid-sort" => BadRequestExceptionCode.InvalidSort,
                 "databases/invalid-data" => BadRequestExceptionCode.InvalidDocumentData,
                 "databases/invalid-update-key" => BadRequestExceptionCode.InvalidField,

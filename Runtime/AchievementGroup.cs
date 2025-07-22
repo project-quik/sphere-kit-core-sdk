@@ -36,7 +36,7 @@ namespace SphereKit
         private static readonly HttpClient _httpClient = new();
 
         /// <summary>
-        /// Gets a detailed achievement group with group description.
+        /// Returns the detailed achievement group with group description.
         /// </summary>
         public async Task<DetailedAchievementGroup> GetDetailedAchievementGroup()
         {
