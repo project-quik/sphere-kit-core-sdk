@@ -1,6 +1,6 @@
 {
     "name": "co.projectquik.spherekit.core",
-    "version": "0.0.1",
+    "version": "1.1.0",
     "description": "The Authentication and Achievements SDK for Sphere Kit.",
     "displayName": "Sphere Kit Core",
     "keywords": ["server", "backend", "authentication", "auth", "achievements", "sphere", "kit", "core"],
